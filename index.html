@@ -239,7 +239,7 @@
             <!-- Content Area Siswa -->
             <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-12">
                 
-                <!-- ALERT KAS BERKEDIP (Ditampilkan jika ada tunggakan) -->
+                <!-- ALERT KAS BERKEDIP -->
                 <div id="student-kas-alert" class="hidden p-4 rounded-3xl border-4 blink-danger flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
                         <i class="fa-solid fa-circle-exclamation text-2xl animate-bounce"></i>
@@ -252,8 +252,6 @@
 
                 <!-- SUBTAB 1: KARAKTER & KEHADIRAN -->
                 <div id="student-tab-karakter" class="space-y-4">
-                    
-                    <!-- Box Persentase Kehadiran Siswa -->
                     <div class="bg-white rounded-3xl p-4 shadow-md border-2 border-violet-100 flex items-center justify-between gap-3">
                         <div>
                             <span class="text-[10px] font-black text-gray-400 uppercase tracking-wider block">Persentase Kehadiranku</span>
@@ -265,17 +263,15 @@
                         </div>
                     </div>
 
-                    <!-- ANALISIS AKADEMIS & KATA MOTIVASI MANDIRI -->
+                    <!-- ANALISIS AKADEMIS & KATA MOTIVASI -->
                     <div id="student-academic-insights-card" class="hidden bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 rounded-3xl p-4 shadow-sm space-y-3">
                         <h4 class="text-xs font-black text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
                             <i class="fa-solid fa-brain text-indigo-600"></i> 📊 Analisis & Motivasi Belajarku
                         </h4>
-                        <div id="student-insights-content" class="space-y-3 pt-1">
-                            <!-- Diisi dinamis oleh JavaScript -->
-                        </div>
+                        <div id="student-insights-content" class="space-y-3 pt-1"></div>
                     </div>
 
-                    <!-- PANDUAN PENGGUNAAN APLIKASI UNTUK SISWA & ORANG TUA -->
+                    <!-- PANDUAN SISWA -->
                     <div class="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-orange-200 rounded-3xl p-4 shadow-sm space-y-3">
                         <button onclick="toggleOnboardingGuide()" class="w-full flex justify-between items-center text-left focus:outline-none">
                             <h4 class="text-xs font-black text-orange-800 uppercase tracking-wider flex items-center gap-1.5">
@@ -286,35 +282,28 @@
                         <div id="onboarding-content" class="hidden text-[11px] text-orange-950 font-bold space-y-2 pt-2 border-t border-orange-200">
                             <p><span class="text-emerald-700">⭐ Bintang Kebaikan:</span> Didapatkan saat kamu rajin piket, ramah, membantu guru, dan menjawab kuis kelas.</p>
                             <p><span class="text-amber-700">⚠️ Poin Pelanggaran:</span> Diberikan jika kamu terlambat, lupa PR, atau membuat kegaduhan.</p>
-                            <p><span class="text-blue-700">🛡️ Restitusi Otomatis & Mandiri:</span> Poin kebaikan baru yang kamu peroleh otomatis melunasi sisa pelanggaran terlebih dahulu. Kamu juga bisa melakukan tindakan perbaikan mandiri di bagian bawah!</p>
-                            <p><span class="text-indigo-700">🎖️ Sistem XP & Gelar:</span> Gelar RPG-mu dihitung dari rumus: <br> <code class="bg-white/80 px-1 py-0.5 rounded text-[10px] text-indigo-900 font-mono font-black">(Kebaikan × 12) + (Hadir × 4) - (Pelanggaran × 18)</code>.</p>
+                            <p><span class="text-blue-700">🛡️ Restitusi Otomatis & Mandiri:</span> Poin kebaikan baru yang kamu peroleh otomatis melunasi sisa pelanggaran terlebih dahulu.</p>
                         </div>
                     </div>
 
                     <div class="bg-white rounded-3xl p-5 shadow-md border-2 border-emerald-100 space-y-4">
                         <h3 class="text-center text-xs font-black text-gray-400 uppercase tracking-wider">Tabungan Karakterku</h3>
-                        
                         <div class="grid grid-cols-2 gap-3">
                             <div class="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-3 text-center">
                                 <i class="fa-solid fa-award text-3xl text-kebaikan mb-1.5 animate-bounce"></i>
                                 <h4 class="text-[10px] font-black text-emerald-800 uppercase">Poin Kebaikan</h4>
                                 <p id="student-good-pts" class="text-3xl font-black text-kebaikan-dark">0</p>
                             </div>
-                            
                             <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-3 text-center">
                                 <i class="fa-solid fa-triangle-exclamation text-3xl text-pelanggaran mb-1.5"></i>
                                 <h4 class="text-[10px] font-black text-amber-800 uppercase">Poin Pelanggaran</h4>
                                 <p id="student-bad-pts" class="text-3xl font-black text-pelanggaran-dark">0</p>
                             </div>
                         </div>
-
-                        <!-- Info Restitusi Otomatis -->
                         <div class="p-3 bg-blue-50 border border-blue-200 rounded-2xl text-[11px] text-blue-800 font-bold">
                             <i class="fa-solid fa-shield-cat mr-1 text-blue-500"></i> Poin kebaikan yang baru kamu kumpulkan otomatis digunakan untuk melunasi poin pelanggaran terlebih dahulu!
                         </div>
-
-                        <div id="badge-pujian" class="text-center p-2 rounded-xl text-xs font-bold">
-                        </div>
+                        <div id="badge-pujian" class="text-center p-2 rounded-xl text-xs font-bold"></div>
                     </div>
 
                     <!-- Bagian Pengajuan Restitusi Mandiri -->
@@ -322,17 +311,14 @@
                         <h4 class="font-black text-xs text-amber-800 uppercase flex items-center gap-1.5">
                             <i class="fa-solid fa-heart-circle-check text-kebaikan"></i> Perbaiki Poin Pelanggaran (Restitusi)
                         </h4>
-                        <p class="text-[10px] text-gray-500">Pilihlah salah satu kegiatan positif buatan Guru untuk mengurangi poin kesalahanmu secara mandiri.</p>
-                        
-                        <div id="student-restitusi-options" class="space-y-2">
-                        </div>
+                        <p class="text-[10px] text-gray-500">Pilihlah salah satu kegiatan positif buatan Guru untuk mengurangi kesalahanmu.</p>
+                        <div id="student-restitusi-options" class="space-y-2"></div>
                     </div>
 
                     <!-- Riwayat Aktivitas Anak -->
                     <div>
                         <h4 class="font-black text-xs text-gray-500 uppercase tracking-wide mb-2"><i class="fa-solid fa-history mr-1"></i> Catatan Harian Karakterku</h4>
-                        <div id="student-logs-list" class="space-y-2">
-                        </div>
+                        <div id="student-logs-list" class="space-y-2"></div>
                     </div>
                 </div>
 
@@ -345,10 +331,8 @@
                             </h4>
                             <span id="student-misi-progress" class="text-[10px] font-extrabold bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full">0% Tuntas</span>
                         </div>
-                        <p class="text-[10px] text-gray-500">Misi adalah tantangan karakter langsung dari gurumu untuk melatih kedisiplinan dan tanggung jawab sehari-hari.</p>
-                        
-                        <div id="student-misi-list" class="space-y-3">
-                        </div>
+                        <p class="text-[10px] text-gray-500">Misi adalah tantangan karakter langsung dari gurumu.</p>
+                        <div id="student-misi-list" class="space-y-3"></div>
                     </div>
                 </div>
 
@@ -361,19 +345,13 @@
                             </h4>
                             <span id="student-tugas-progress" class="text-[10px] font-extrabold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">0% Tuntas</span>
                         </div>
-                        
                         <div class="p-3 bg-indigo-50 border border-indigo-100 rounded-2xl flex justify-between items-center">
                             <div>
                                 <span class="text-[10px] font-black text-indigo-800 uppercase block">Total Perkembangan Akademis</span>
-                                <p class="text-[10px] text-gray-500">Persentase seluruh tugas yang berhasil diselesaikan.</p>
                             </div>
                             <span id="display-std-academic-total-pct" class="text-xl font-black text-indigo-700 bg-white px-2.5 py-1.5 border border-indigo-200 rounded-xl">0%</span>
                         </div>
-
-                        <p class="text-[10px] text-gray-500 font-semibold text-emerald-700 bg-emerald-50 p-2.5 border border-emerald-200 rounded-xl">Kamu dapat mengusulkan/menginputkan nilai tugasmu langsung pada masing-masing tugas di bawah ini agar diverifikasi Pak Guru!</p>
-                        
-                        <div id="student-tasks-list" class="space-y-3">
-                        </div>
+                        <div id="student-tasks-list" class="space-y-3"></div>
                     </div>
                 </div>
 
@@ -383,13 +361,9 @@
                         <h4 class="font-black text-xs text-emerald-800 uppercase flex items-center gap-1.5">
                             <i class="fa-solid fa-money-bill-transfer text-emerald-500"></i> Buku Transparansi Kas Kelas
                         </h4>
-                        <p class="text-[10px] text-gray-500">Seluruh uang kas kelas tercatat dengan transparan agar kita bisa merencanakan kegiatan kelas bersama.</p>
-                        
-                        <div id="student-kas-list" class="space-y-2">
-                        </div>
+                        <div id="student-kas-list" class="space-y-2"></div>
                     </div>
                 </div>
-
             </div>
         </div>
 
@@ -449,7 +423,7 @@
 
                 <div id="desktop-inner-layout" class="flex flex-col gap-4">
                     
-                    <!-- Left Sidebar - Menu Grid (Selalu Tampil) -->
+                    <!-- Left Sidebar - Menu Grid -->
                     <div id="desktop-menu-sidebar" class="w-full space-y-2">
                         <span class="text-[10px] font-black text-teal-800 uppercase tracking-widest block mb-1">🧭 Navigasi Panel Kerja</span>
                         <div class="grid grid-cols-3 gap-2">
@@ -494,7 +468,7 @@
                     </div>
 
                     <!-- Right Workspace Panel (Konten Utama Tab) -->
-                    <div id="desktop-main-workspace" class="w-full">
+                    <div id="desktop-main-workspace" class="w-full animate-fade-in">
                         <div id="admin-panel-content" class="bg-white p-4 rounded-3xl border-2 border-emerald-100 shadow-md text-sm space-y-3">
                         </div>
                     </div>
@@ -517,17 +491,14 @@
                     <i class="fa-solid fa-user-lock text-2xl"></i>
                 </div>
                 <h3 class="text-md font-black text-gray-800 mb-1">Akses Portal Guru</h3>
-                <p class="text-[10px] text-gray-400 mb-4">Masukkan PIN Pengaman Anda.</p>
-                
                 <input type="password" id="admin-pin" placeholder="PIN Rahasia" class="w-full p-2.5 text-center text-xl tracking-widest font-black rounded-xl bg-gray-50 border-2 border-emerald-300 focus:outline-none focus:border-emerald-500 mb-4 text-gray-800">
-                
                 <button onclick="verifyAdminPin()" class="btn-3d w-full bg-emerald-600 text-white font-black py-2.5 rounded-xl border-b-4 border-emerald-800">
                     BUKA PORTAL GURU
                 </button>
             </div>
         </div>
 
-        <!-- Cheerful Popup (Apresiasi Sukses) -->
+        <!-- Cheerful Popup -->
         <div id="modal-popup" class="hidden absolute inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
             <div class="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl card-pop text-center relative border-4 border-yellow-400">
                 <div id="popup-icon-box" class="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto -mt-14 mb-4 border-4 border-white shadow-md">
@@ -633,7 +604,7 @@
         let goodPresets = []; 
         let tasks = [];
         let taskSubmissions = [];
-        let kasAlerts = {}; // Menyimpan data tagihan/peringatan kas murid: { studentId: nominal }
+        let kasAlerts = {}; // Menyimpan data tagihan/peringatan kas murid
         
         // Konfigurasi default
         let appSettings = {
@@ -650,7 +621,8 @@
         let activeAdminTab = 'siswa';
         let currentStudentSubTab = 'karakter';
         let expandedTaskId = null; // Menahan ID tugas yang sedang dibuka untuk grading
-        let activeRestitusiSubTab = 'pending'; // Sub-tab restitusi pada panel guru ('pending' atau 'preset')
+        let activeRestitusiSubTab = 'pending';
+        let activeTaskTabFilter = 'Semua'; // Menyimpan filter tab tugas ('Semua', 'Tugas', 'Misi')
         let isDesktopMode = false; // Mode Desktop global
 
         // Custom modal Promise resolvers
@@ -751,7 +723,6 @@
             }
         }
 
-        // Fungsi Pengalih Mode Desktop untuk Guru
         function toggleDesktopMode() {
             playSfx('click');
             const container = document.getElementById('main-container');
@@ -763,7 +734,6 @@
             isDesktopMode = !isDesktopMode;
 
             if (isDesktopMode) {
-                // Konfigurasi ke mode Desktop (Lebar, Dual-Pane)
                 container.classList.remove('max-w-md');
                 container.classList.add('max-w-6xl');
                 dInner.classList.remove('flex-col');
@@ -774,7 +744,6 @@
                 dWorkspace.classList.add('w-2/3');
                 icon.className = "fa-solid fa-mobile-screen-button text-xs";
             } else {
-                // Beralih kembali ke model HP semula
                 container.classList.remove('max-w-6xl');
                 container.classList.add('max-w-md');
                 dInner.classList.remove('flex-row', 'items-start');
@@ -1111,7 +1080,6 @@
                 badgeBox.innerHTML = `<i class="fa-solid fa-heart mr-1"></i> Poin kebaikan berikutnya akan otomatis digunakan melunasi sisa pelanggaran ini.`;
             }
 
-            // Memproses alert tagihan kas berkedip di siswa
             const alertBox = document.getElementById('student-kas-alert');
             const alertMsg = document.getElementById('student-kas-alert-msg');
             const studentAlertAmount = kasAlerts[currentStudent.id];
@@ -1123,7 +1091,6 @@
                 alertBox.classList.add('hidden');
             }
 
-            // Memproses wawasan / rekomendasi pelajaran untuk siswa
             const insights = getStudentSubjectInsights(currentStudent.id);
             const insightCard = document.getElementById('student-academic-insights-card');
             const insightContent = document.getElementById('student-insights-content');
@@ -1137,7 +1104,7 @@
                         <div class="bg-emerald-50 border border-emerald-200 p-2.5 rounded-2xl">
                             <span class="text-[9px] font-black bg-emerald-150 text-emerald-800 px-1.5 py-0.5 rounded uppercase inline-block mb-1">Mata Pelajaran Terbaik</span>
                             <p class="text-xs font-black text-gray-800">${insights.best.name} (Rata-rata: ${insights.best.avg})</p>
-                            <p class="text-[10px] text-gray-600 mt-1 italic">"Keren sekali perjuanganmu! Pertahankan prestasi emas ini dan jadilah ksatria ilmu yang bersinar! 🌟"</p>
+                            <p class="text-[10px] text-gray-600 mt-1 italic">"Keren sekali perjuanganmu! Pertahankan prestasi emas ini! 🌟"</p>
                         </div>
                     `;
                 }
@@ -1146,7 +1113,7 @@
                         <div class="bg-rose-50 border border-rose-200 p-2.5 rounded-2xl">
                             <span class="text-[9px] font-black bg-rose-150 text-rose-800 px-1.5 py-0.5 rounded uppercase inline-block mb-1">Butuh Perhatian Lebih</span>
                             <p class="text-xs font-black text-gray-800">${insights.worst.name} (Rata-rata: ${insights.worst.avg})</p>
-                            <p class="text-[10px] text-gray-600 mt-1 italic">"Jangan menyerah, pahlawan! Sedikit latihan tambahan dan ketekunan akan membuatmu menaklukkan materi ini! 💪"</p>
+                            <p class="text-[10px] text-gray-600 mt-1 italic">"Jangan menyerah, sedikit latihan tambahan akan membuatmu menaklukkan materi ini! 💪"</p>
                         </div>
                     `;
                 }
@@ -1155,7 +1122,6 @@
                 insightCard.classList.add('hidden');
             }
 
-            // Catatan Harian Karakter
             const stdLogsBox = document.getElementById('student-logs-list');
             stdLogsBox.innerHTML = '';
             const myLogs = logs.filter(l => l.student_id === currentStudent.id);
@@ -1179,7 +1145,6 @@
                 });
             }
 
-            // Opsi Restitusi Mandiri Siswa
             const optBox = document.getElementById('student-restitusi-options');
             optBox.innerHTML = '';
             if (currentStudent.points_bad === 0) {
@@ -1207,7 +1172,6 @@
             renderStudentMisiList();
             renderStudentTugasList();
 
-            // Buku Transparansi Kas di Halaman Siswa
             const kasBox = document.getElementById('student-kas-list');
             kasBox.innerHTML = '';
             
@@ -1217,7 +1181,6 @@
                     <span class="text-[9px] font-bold uppercase tracking-wider block mb-0.5">Jumlah Kas Kelas Saat Ini</span>
                     <h2 class="text-xl font-black">${formatRupiah(totalKas)}</h2>
                 </div>
-                <h5 class="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-4 mb-2">Riwayat Pembukuan Kas</h5>
             `;
 
             if (kasTransactions.length === 0) {
@@ -1413,7 +1376,7 @@
             updateClassAnalytics();
             playSfx('success');
             await postToCloud("task_submissions", "upsert", subm);
-            showPopup("Laporan Dikirim!", "Misi Anda sekarang menunggu verifikasi dari Pak Guru.", "fa-hourglass-start", "text-yellow-500", "bg-yellow-50");
+            showPopup("Laporan Dikirim!", "Misi Anda sekarang menunggu verifikasi.", "fa-hourglass-start", "text-yellow-500", "bg-yellow-50");
         }
 
         async function laporTugasDenganNilaiSiswa(taskId) {
@@ -1447,7 +1410,7 @@
             updateClassAnalytics();
             playSfx('success');
             await postToCloud("task_submissions", "upsert", subm);
-            showPopup("Tugas Terkumpul!", "Usulan nilai Anda telah terkirim dan siap diverifikasi oleh Pak Guru.", "fa-check", "text-emerald-500", "bg-emerald-50");
+            showPopup("Tugas Terkumpul!", "Usulan nilai Anda telah terkirim dan siap diverifikasi.", "fa-check", "text-emerald-500", "bg-emerald-50");
         }
 
         async function ajukanRestitusiSiswa(restitusiId) {
@@ -1480,7 +1443,7 @@
             playSfx('success');
             
             await postToCloud("restitusi_requests", "upsert", newReq);
-            showPopup("Pengajuan Berhasil!", "Pak Guru akan memverifikasi setelah kamu menyelesaikan tindakan restitusi tersebut.", "fa-heart-circle-check", "text-emerald-500", "bg-emerald-50");
+            showPopup("Pengajuan Berhasil!", "Pak Guru akan memverifikasi setelah kamu menyelesaikan tindakan restitusi.", "fa-heart-circle-check", "text-emerald-500", "bg-emerald-50");
         }
 
         function renderDashboardStats() {
@@ -1491,7 +1454,6 @@
             const totalKas = kasTransactions.reduce((acc, curr) => curr.type === 'in' ? acc + Number(curr.amount) : acc - Number(curr.amount), 0);
             document.getElementById('pub-total-kas').innerText = formatRupiah(totalKas);
 
-            // Top Kebaikan
             const kbBox = document.getElementById('leaderboard-kebaikan');
             kbBox.innerHTML = '';
             const topGood = [...students].sort((a,b) => b.points_good - a.points_good).slice(0, 5);
@@ -1509,7 +1471,6 @@
                 `;
             });
 
-            // Top Pelanggaran
             const plBox = document.getElementById('leaderboard-pelanggaran');
             plBox.innerHTML = '';
             const topBad = [...students].filter(s => s.points_bad > 0).sort((a,b) => b.points_bad - a.points_bad).slice(0, 5);
@@ -1639,8 +1600,6 @@
             `;
             students.forEach(s => {
                 let photoHtml = s.photo ? `<img src="${s.photo}" class="w-8 h-8 rounded-full object-cover border-2 border-emerald-100">` : `<div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center border-2 border-emerald-100"><i class="fa-solid fa-user text-emerald-400 text-[10px]"></i></div>`;
-                
-                // Menampilkan perolehan seluruh Poin kebaikan dan pelanggaran di halaman guru
                 html += `
                     <div class="p-2.5 bg-white rounded-xl flex justify-between items-center border-2 border-emerald-50 shadow-sm">
                         <div class="flex items-center gap-2">
@@ -1740,14 +1699,12 @@
                         </div>
                     </div>
 
-                    <!-- Autocomplete / Searchable Siswa (Individu) -->
+                    <!-- Autocomplete Siswa (Individu) -->
                     <div id="poin-single-target" class="relative">
                         <label class="text-[9px] font-bold text-emerald-800 block mb-1">Cari & Pilih Nama Siswa:</label>
-                        <input type="text" id="in-poin-student-search" onkeyup="searchStudentInPoinForm()" placeholder="Ketik nama depan atau belakang..." class="w-full p-2.5 text-xs bg-white border-2 border-emerald-200 rounded-xl text-gray-850 font-bold focus:outline-none focus:border-emerald-500" autocomplete="off">
+                        <input type="text" id="in-poin-student-search" onkeyup="searchStudentInPoinForm()" placeholder="Ketik nama..." class="w-full p-2.5 text-xs bg-white border-2 border-emerald-200 rounded-xl text-gray-850 font-bold focus:outline-none focus:border-emerald-500" autocomplete="off">
                         <input type="hidden" id="in-poin-student">
-                        
-                        <div id="poin-student-search-results" class="hidden absolute left-0 right-0 mt-1 max-h-36 overflow-y-auto bg-white border-2 border-emerald-200 rounded-xl shadow-xl z-50 divide-y divide-gray-100">
-                        </div>
+                        <div id="poin-student-search-results" class="hidden absolute left-0 right-0 mt-1 max-h-36 overflow-y-auto bg-white border-2 border-emerald-200 rounded-xl shadow-xl z-50 divide-y divide-gray-100"></div>
                     </div>
 
                     <!-- Pilihan Target Kolektif -->
@@ -1784,22 +1741,21 @@
                         </div>
                     </div>
 
-                    <!-- Preset Dropdown Dinamis -->
+                    <!-- Preset Dropdown -->
                     <div id="preset-selector-box">
                         <label class="text-[9px] font-bold text-emerald-800 block mb-1" id="preset-label-title">Pilih Preset:</label>
-                        <select id="in-poin-preset" onchange="applyPresetPoin()" class="w-full p-2.5 bg-white border-2 border-emerald-200 rounded-xl text-gray-850 text-xs font-bold">
-                        </select>
+                        <select id="in-poin-preset" onchange="applyPresetPoin()" class="w-full p-2.5 bg-white border-2 border-emerald-200 rounded-xl text-gray-850 text-xs font-bold"></select>
                     </div>
 
                     <div>
                         <label class="text-[9px] font-bold text-emerald-800 block mb-1">Keterangan / Aktivitas:</label>
-                        <input type="text" id="in-poin-desc" placeholder="Contoh: Membantu merapikan meja..." class="w-full p-2.5 bg-white border-2 border-emerald-200 rounded-xl text-gray-850 text-xs font-bold focus:outline-none focus:border-emerald-500">
+                        <input type="text" id="in-poin-desc" placeholder="Contoh: Membantu piket..." class="w-full p-2.5 bg-white border-2 border-emerald-200 rounded-xl text-gray-850 text-xs font-bold focus:outline-none focus:border-emerald-500">
                     </div>
 
                     <button onclick="simpanPoinAdmin()" class="btn-3d w-full bg-yellow-400 text-amber-950 font-black text-xs rounded-xl border-b-4 border-yellow-600 shadow-md flex items-center justify-center">SIMPAN CATATAN POIN</button>
                 </div>
 
-                <!-- RIWAYAT PENILAIAN TERBARU -->
+                <!-- RIWAYAT PENILAIAN -->
                 <h5 class="text-[10px] font-black text-emerald-800 uppercase mt-4 mb-2">Riwayat Transaksi Poin</h5>
                 <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
                     ${logs.slice(0, 15).map(l => {
@@ -1817,7 +1773,6 @@
                             </div>
                         `;
                     }).join('')}
-                    ${logs.length === 0 ? '<p class="text-center text-[10px] text-gray-400 py-3">Belum ada riwayat poin.</p>' : ''}
                 </div>
             `;
             container.innerHTML = html;
@@ -2064,7 +2019,7 @@
                         if (student.points_bad > 0) {
                             if (student.points_bad >= pts) {
                                 student.points_bad -= pts;
-                                finalLogDesc += ` (Otomatis digunakan memotong ${pts} poin pelanggaran)`;
+                                finalLogDesc += ` (Otomatis memotong ${pts} poin pelanggaran)`;
                             } else {
                                 const sisaPoinKebaikan = pts - student.points_bad;
                                 finalLogDesc += ` (Otomatis melunasi sisa ${student.points_bad} poin pelanggaran, sisa +${sisaPoinKebaikan} bintang)`;
@@ -2182,7 +2137,7 @@
                         </div>
                         <div>
                             <label class="text-[9px] text-gray-500 font-bold block mb-1">Rincian / Petunjuk</label>
-                            <input type="text" id="in-restitusi-preset-desc" placeholder="Contoh: Rapikan buku bacaan di pojok baca..." class="w-full p-2 text-xs rounded-xl bg-white border border-rose-200 font-bold">
+                            <input type="text" id="in-restitusi-preset-desc" placeholder="Contoh: Rapikan buku..." class="w-full p-2 text-xs rounded-xl bg-white border border-rose-200 font-bold">
                         </div>
                         <div>
                             <label class="text-[9px] text-gray-500 font-bold block mb-1">Pengurangan Poin</label>
@@ -2313,7 +2268,7 @@
             playSfx(status === 'Approved' ? 'success' : 'fail');
 
             await postToCloud("restitusi_requests", "upsert", req);
-            showPopup("Verifikasi Selesai", `Restitusi siswa telah berhasil dikonfirmasi sebagai: ${status}`, "fa-circle-check", "text-emerald-500", "bg-emerald-50");
+            showPopup("Verifikasi Selesai", `Restitusi siswa telah dikonfirmasi: ${status}`, "fa-circle-check", "text-emerald-500", "bg-emerald-50");
         }
 
         function renderTabAbsen(container) {
@@ -2356,15 +2311,6 @@
                                 </span>
                             </div>
                         </div>
-
-                        <div class="pt-1.5">
-                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-wide block mb-1">Daftar Tanggal Terisi Absen:</span>
-                            <div class="flex flex-wrap gap-1 max-h-16 overflow-y-auto pt-0.5">
-                                ${filledDates.length === 0 ? '<span class="text-[9px] text-gray-400 italic">Belum ada tanggal terisi</span>' : filledDates.map(fd => `
-                                    <span onclick="setAbsenDatePicker('${fd}')" class="cursor-pointer text-[8px] font-black px-1.5 py-0.5 rounded-lg bg-green-150 text-green-800 border border-green-200 hover:scale-105 transition-transform">${fd}</span>
-                                `).join('')}
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -2388,106 +2334,7 @@
             html += `
                 </div>
                 <button onclick="simpanAbsensi()" class="btn-3d w-full bg-violet-600 text-white font-black text-xs rounded-xl border-b-4 border-violet-800 mt-2">SIMPAN KEHADIRAN TANGGAL INI</button>
-
-                <div class="mt-6 pt-4 border-t-2 border-dashed border-gray-200">
-                    <h5 class="font-black text-xs text-violet-800 uppercase mb-3 flex justify-between items-center">
-                        <span>📊 REKAP PRESENTASE BULANAN</span>
-                        <select id="absen-month-filter" onchange="changeAbsenView()" class="p-1 text-[10px] rounded bg-white text-violet-800 border-2 border-violet-100 font-black">
-                            <option value="">-- Pilih Bulan --</option>
-                            ${monthsArray.map(m => {
-                                const parts = m.split('-');
-                                const mName = getIndonesianMonthName(parseInt(parts[1]));
-                                return `<option value="${m}" ${selectedMonth === m ? 'selected' : ''}>${mName} ${parts[0]}</option>`;
-                            }).join('')}
-                        </select>
-                    </h5>
             `;
-
-            if (selectedMonth) {
-                const filteredDays = attendanceData.filter(d => d.date.startsWith(selectedMonth));
-                if (filteredDays.length === 0) {
-                    html += `<p class="text-xs text-gray-400 text-center py-2 italic">Belum ada rekaman presensi pada bulan ini.</p>`;
-                } else {
-                    html += `
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-[9px] text-gray-700 font-semibold border-collapse">
-                                <thead>
-                                    <tr class="bg-violet-100 text-violet-800 uppercase">
-                                        <th class="p-1 border border-violet-200 text-left">Siswa</th>
-                                        <th class="p-1 border border-violet-200 text-center">H</th>
-                                        <th class="p-1 border border-violet-200 text-center">S</th>
-                                        <th class="p-1 border border-violet-200 text-center">I</th>
-                                        <th class="p-1 border border-violet-200 text-center">A</th>
-                                        <th class="p-1 border border-violet-200 text-center">% H</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                    `;
-
-                    let sumH = 0, sumS = 0, sumI = 0, sumA = 0, sumTotalMarked = 0;
-
-                    students.forEach(s => {
-                        let h = 0, sakit = 0, iz = 0, a = 0;
-                        filteredDays.forEach(day => {
-                            const status = day.records[s.id] || 'H';
-                            if (status === 'H') h++;
-                            else if (status === 'S') sakit++;
-                            else if (status === 'I') iz++;
-                            else if (status === 'A') a++;
-                        });
-
-                        const total = h + sakit + iz + a;
-                        
-                        sumH += h;
-                        sumS += sakit;
-                        sumI += iz;
-                        sumA += a;
-                        sumTotalMarked += total;
-
-                        const pctH = total > 0 ? Math.round((h / total) * 100) : 0;
-                        const pctS = total > 0 ? Math.round((sakit / total) * 100) : 0;
-                        const pctI = total > 0 ? Math.round((iz / total) * 100) : 0;
-                        const pctA = total > 0 ? Math.round((a / total) * 100) : 0;
-
-                        html += `
-                            <tr class="hover:bg-gray-50 border-b border-gray-100">
-                                <td class="p-1 font-bold truncate max-w-[80px]">${s.name}</td>
-                                <td class="p-1 text-center text-green-600 font-bold">${h} (${pctH}%)</td>
-                                <td class="p-1 text-center text-blue-600 font-bold">${sakit} (${pctS}%)</td>
-                                <td class="p-1 text-center text-yellow-600 font-bold">${iz} (${pctI}%)</td>
-                                <td class="p-1 text-center text-red-600 font-bold">${a} (${pctA}%)</td>
-                                <td class="p-1 text-center font-black">${pctH}%</td>
-                            </tr>
-                        `;
-                    });
-
-                    const classH_pct = sumTotalMarked > 0 ? Math.round((sumH / sumTotalMarked) * 100) : 0;
-                    const classS_pct = sumTotalMarked > 0 ? Math.round((sumS / sumTotalMarked) * 100) : 0;
-                    const classI_pct = sumTotalMarked > 0 ? Math.round((sumI / sumTotalMarked) * 100) : 0;
-                    const classA_pct = sumTotalMarked > 0 ? Math.round((sumA / sumTotalMarked) * 100) : 0;
-
-                    html += `
-                        <tr class="bg-violet-50 border-t-2 border-violet-300 font-black">
-                            <td class="p-1 uppercase tracking-wide">Kolektif Kelas</td>
-                            <td class="p-1 text-center text-green-800">${sumH} (${classH_pct}%)</td>
-                            <td class="p-1 text-center text-blue-800">${sumS} (${classS_pct}%)</td>
-                            <td class="p-1 text-center text-yellow-800">${sumI} (${classI_pct}%)</td>
-                            <td class="p-1 text-center text-red-800">${sumA} (${classA_pct}%)</td>
-                            <td class="p-1 text-center text-violet-800">${classH_pct}%</td>
-                        </tr>
-                    `;
-
-                    html += `
-                                </tbody>
-                            </table>
-                        </div>
-                    `;
-                }
-            } else {
-                html += `<p class="text-xs text-gray-400 text-center py-2 italic">Silakan buat presensi kelas terlebih dahulu agar rekap bulanan terisi.</p>`;
-            }
-
-            html += `</div>`;
             container.innerHTML = html;
         }
 
@@ -2554,8 +2401,6 @@
 
         function renderTabKas(container) {
             const totalKas = kasTransactions.reduce((acc, curr) => curr.type === 'in' ? acc + Number(curr.amount) : acc - Number(curr.amount), 0);
-            
-            // Generate opsi murid untuk select-box penagihan kas
             let studentOptionsHtml = students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
 
             let html = `
@@ -2571,10 +2416,9 @@
                     <i class="fa-solid fa-wallet text-2xl text-emerald-200"></i>
                 </div>
 
-                <!-- FORM PENAGIHAN KAS KELAS (INGATKAN SISWA) -->
+                <!-- FORM PENAGIHAN KAS KELAS -->
                 <div class="bg-red-50/50 p-3 rounded-2xl border-2 border-red-200 space-y-3 mb-3">
                     <h5 class="text-[10px] font-black text-red-800 uppercase border-b border-red-100 pb-1"><i class="fa-solid fa-bell"></i> Ingatkan Tunggakan Kas Kelas</h5>
-                    
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="text-[9px] text-gray-500 font-bold block mb-1">Pilih Siswa</label>
@@ -2589,24 +2433,6 @@
                         </div>
                     </div>
                     <button onclick="kirimPeringatanKas()" class="w-full bg-red-600 hover:bg-red-500 text-white font-black text-xs py-2 rounded-xl btn-3d border-b-4 border-red-800">Kirim Peringatan Berkedip Ke Portal Siswa</button>
-
-                    <!-- DAFTAR PENAGIHAN AKTIF -->
-                    <div class="pt-2 border-t border-red-100">
-                        <span class="text-[9px] font-black text-red-700 uppercase block mb-1.5">Penagihan Berkedip Aktif Saat Ini:</span>
-                        <div class="space-y-1.5 max-h-24 overflow-y-auto">
-                            ${Object.keys(kasAlerts).map(sId => {
-                                const std = students.find(s => s.id.toString() === sId.toString());
-                                if (!std) return '';
-                                return `
-                                    <div class="p-1.5 bg-white border border-red-200 rounded flex justify-between items-center text-[10px]">
-                                        <span class="font-bold text-gray-800">${std.name} (${formatRupiah(kasAlerts[sId])})</span>
-                                        <button onclick="hapusPeringatanKas('${sId}')" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-circle-xmark"></i> Hapus</button>
-                                    </div>
-                                `;
-                            }).join('')}
-                            ${Object.keys(kasAlerts).length === 0 ? '<span class="text-[9px] text-gray-400 italic">Belum ada penagihan berkedip yang aktif.</span>' : ''}
-                        </div>
-                    </div>
                 </div>
 
                 <!-- FORM INPUT TRANSAKSI KAS -->
@@ -2643,26 +2469,6 @@
                         <button onclick="batalEditKas()" class="bg-gray-400 text-white font-black text-xs py-2 px-3 rounded-xl">Batal</button>
                     </div>
                 </div>
-
-                <h5 class="text-[10px] font-black text-emerald-800 uppercase mt-4 mb-2">Riwayat Aliran Kas</h5>
-                <div class="space-y-2 max-h-40 overflow-y-auto">
-                    ${kasTransactions.map(k => {
-                        const isIn = k.type === 'in';
-                        return `
-                            <div class="p-2 bg-white rounded-xl border-2 border-emerald-50 flex justify-between items-center text-xs">
-                                <div>
-                                    <h6 class="font-bold text-gray-800 truncate max-w-[150px]">${k.description}</h6>
-                                    <p class="text-[8px] text-gray-400">${k.date}</p>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="font-black ${isIn ? 'text-emerald-600' : 'text-rose-600'}">${isIn ? '+' : '-'}${formatRupiah(k.amount)}</span>
-                                    <button onclick="editKasAdmin('${k.id}')" class="text-blue-500"><i class="fa-solid fa-pen text-[9px]"></i></button>
-                                    <button onclick="hapusKasAdmin('${k.id}')" class="text-red-500"><i class="fa-solid fa-trash text-[9px]"></i></button>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
             `;
             container.innerHTML = html;
         }
@@ -2673,7 +2479,7 @@
             const amount = document.getElementById('kas-alert-amount').value;
 
             if (!studentId || !amount || Number(amount) <= 0) {
-                showPopup("Data Kosong", "Mohon pilih nama siswa dan tentukan besar nominal tunggakan kas!", "fa-circle-xmark", "text-red-500", "bg-red-50");
+                showPopup("Data Kosong", "Mohon isi nama siswa dan nominal!", "fa-circle-xmark", "text-red-500", "bg-red-50");
                 return;
             }
 
@@ -2686,7 +2492,7 @@
                 student_id: studentId,
                 amount: Number(amount)
             });
-            showPopup("Peringatan Dikirim!", "Notifikasi tagihan kas berkedip kini aktif di halaman portal siswa tersebut.", "fa-bell", "text-emerald-500", "bg-emerald-50");
+            showPopup("Peringatan Dikirim!", "Notifikasi tagihan kas berkedip aktif di portal siswa.", "fa-bell", "text-emerald-500", "bg-emerald-50");
         }
 
         async function hapusPeringatanKas(studentId) {
@@ -2697,7 +2503,7 @@
             playSfx('fail');
 
             await postToCloud("kas_alerts", "delete", null, studentId);
-            showPopup("Penagihan Dihapus", "Notifikasi berkedip pada portal siswa tersebut telah dinonaktifkan.", "fa-circle-check", "text-blue-500", "bg-blue-50");
+            showPopup("Penagihan Dihapus", "Notifikasi berkedip telah dinonaktifkan.", "fa-circle-check", "text-blue-500", "bg-blue-50");
         }
 
         async function simpanKasAdmin() {
@@ -2750,7 +2556,7 @@
         }
 
         async function hapusKasAdmin(id) {
-            const conf = await showCustomConfirm("Hapus Transaksi", "Hapus transaksi ini dari buku kas?");
+            const conf = await showCustomConfirm("Hapus Transaksi", "Hapus transaksi ini?");
             if (!conf) return;
 
             kasTransactions = kasTransactions.filter(k => k.id !== id);
@@ -2775,181 +2581,265 @@
                 return new Date(b.created_at || 0) - new Date(a.created_at || 0);
             });
 
-            const groupedTasks = {};
-            sortedTasks.forEach(t => {
-                const cat = t.category || 'LAINNYA';
-                if (!groupedTasks[cat]) groupedTasks[cat] = [];
-                groupedTasks[cat].push(t);
+            // Menyaring berdasarkan filter tab aktif
+            const filteredTasks = sortedTasks.filter(t => {
+                if (activeTaskTabFilter === 'Semua') return true;
+                return t.type === activeTaskTabFilter;
             });
 
+            const countTugas = tasks.filter(t => t.type === 'Tugas').length;
+            const countMisi = tasks.filter(t => t.type === 'Misi').length;
+
             let html = `
-                <div class="flex justify-between items-center mb-3">
-                    <h4 class="font-black text-xs text-blue-800 uppercase tracking-wider">Kelola Tugas & Misi</h4>
-                    <button onclick="bukaFormTambahTugas()" class="bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] px-2.5 py-1.5 rounded-lg btn-3d h-auto">Buat Misi/Tugas</button>
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-gray-100 pb-3 mb-4">
+                    <div>
+                        <h4 class="font-black text-md text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-laptop-code text-blue-600 text-lg"></i>
+                            Ruang Pembelajaran Digital
+                        </h4>
+                        <p class="text-[10px] text-gray-500 font-bold mt-0.5">Kelola, tinjau, dan input nilai tugas secara cepat & tertib.</p>
+                    </div>
+                    <button onclick="bukaFormTambahTugas()" class="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-blue-100 flex items-center justify-center gap-2 transition active:scale-95 h-11">
+                        <i class="fa-solid fa-circle-plus"></i> Buat Tugas & Misi Baru
+                    </button>
                 </div>
 
-                <!-- FORM INPUT TUGAS / MISI -->
-                <div id="form-tugas-box" class="hidden bg-blue-50/50 p-3 rounded-2xl border-2 border-blue-200 mb-3 space-y-3">
-                    <input type="hidden" id="in-tugas-id">
+                <!-- DUA KOLOM AREA KERJA (ADAPTIF DESKTOP) -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
                     
-                    <div>
-                        <label class="text-[9px] font-bold text-gray-500 block mb-1">Tipe Pembelajaran:</label>
-                        <select id="in-tugas-type" class="w-full p-2 text-xs rounded-xl bg-white border-2 border-blue-200 text-gray-800">
-                            <option value="Tugas">📝 Tugas Akademik</option>
-                            <option value="Misi">⚔️ Misi Karakter (RPG Quest)</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="text-[9px] font-bold text-gray-500 block mb-1">Kategori / Mata Pelajaran:</label>
-                        <select id="in-tugas-category" class="w-full p-2 text-xs rounded-xl bg-white border-2 border-blue-200 text-gray-800">
-                            <option value="PKN">PKN</option>
-                            <option value="BINA">BINA</option>
-                            <option value="MTK">MTK</option>
-                            <option value="IPAS">IPAS</option>
-                            <option value="SENI">SENI</option>
-                            <option value="B.ING">B.ING</option>
-                            <option value="KKA">KKA</option>
-                            <option value="LITERASI">LITERASI</option>
-                            <option value="LAINNYA">LAINNYA</option>
-                        </select>
-                    </div>
-
-                    <input type="text" id="in-tugas-title" placeholder="Judul Tugas/Misi..." class="w-full p-2 text-xs bg-white border-2 border-blue-200 rounded-xl text-gray-800 font-bold">
-                    <input type="text" id="in-tugas-desc" placeholder="Rincian Instruksi..." class="w-full p-2 text-xs bg-white border-2 border-blue-200 rounded-xl text-gray-800 font-bold">
-                    <input type="date" id="in-tugas-date" value="${getTodayDate()}" class="w-full p-2 text-xs bg-white border-2 border-blue-200 rounded-xl text-gray-850">
-                    
-                    <button onclick="simpanDataTugas()" class="w-full bg-blue-600 text-white font-black text-xs py-2.5 rounded-xl btn-3d border-b-4 border-blue-800">Simpan & Bagikan</button>
-                </div>
-
-                <!-- DAFTAR PELACAKAN PERKEMBANGAN TUGAS -->
-                <div class="space-y-4 max-h-96 overflow-y-auto">
-            `;
-
-            if (sortedTasks.length === 0) {
-                html += `<p class="text-center py-4 text-xs text-gray-400 font-bold">Belum ada tugas/misi aktif.</p>`;
-            } else {
-                Object.keys(groupedTasks).forEach(cat => {
-                    html += `
-                        <div class="text-[10px] font-black text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg uppercase tracking-wider mb-2 mt-4 flex items-center justify-between">
-                            <span>📂 Kelompok: ${cat}</span>
-                            <span class="text-[9px] text-gray-400">(${groupedTasks[cat].length} Tugas)</span>
+                    <!-- FORM INPUT DI SEBELAH KIRI (lg:col-span-4) -->
+                    <div id="form-tugas-box" class="hidden lg:block lg:col-span-5 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 p-4 rounded-3xl border-2 border-blue-100/80 space-y-3 shadow-sm">
+                        <div class="flex items-center justify-between border-b border-blue-100 pb-2">
+                            <h5 class="text-xs font-black text-blue-900 uppercase flex items-center gap-1.5">
+                                <i class="fa-solid fa-file-signature text-blue-600"></i> Form Parameter Pembelajaran
+                            </h5>
+                            <button onclick="bukaFormTambahTugas()" class="lg:hidden text-gray-400 hover:text-red-500"><i class="fa-solid fa-circle-xmark text-lg"></i></button>
                         </div>
-                    `;
-
-                    groupedTasks[cat].forEach(t => {
-                        const taskSubms = taskSubmissions.filter(s => s.task_id === t.id);
-                        const totalAssigned = taskSubms.length;
-                        const completed = taskSubms.filter(s => s.status === 'Sudah Kumpul').length;
-                        const completionRate = totalAssigned > 0 ? Math.round((completed / totalAssigned) * 100) : 0;
+                        <input type="hidden" id="in-tugas-id">
                         
-                        const isAllFinished = isTaskFullyCompleted(t.id);
-                        const isExpanded = expandedTaskId === t.id;
-
-                        let totalScoreVal = 0;
-                        let gradedCount = 0;
-                        taskSubms.forEach(sub => {
-                            if (sub.score !== null && sub.score !== undefined && sub.score !== '') {
-                                totalScoreVal += Number(sub.score);
-                                gradedCount++;
-                            }
-                        });
-                        const averageScoreVal = gradedCount > 0 ? Math.round((totalScoreVal / gradedCount) * 10) / 10 : 0;
-
-                        const sortedStudents = [...students].sort((a, b) => {
-                            const subA = taskSubms.find(sub => sub.student_id === a.id);
-                            const subB = taskSubms.find(sub => sub.student_id === b.id);
-                            const statusA = subA ? subA.status : 'Belum Kumpul';
-                            const statusB = subB ? subB.status : 'Belum Kumpul';
-                            const isUnfilledA = statusA !== 'Sudah Kumpul';
-                            const isUnfilledB = statusB !== 'Sudah Kumpul';
-                            if (isUnfilledA && !isUnfilledB) return -1;
-                            if (!isUnfilledA && isUnfilledB) return 1;
-                            return a.name.localeCompare(b.name);
-                        });
-
-                        html += `
-                            <div class="p-3 bg-white border-2 border-blue-50 rounded-2xl shadow-sm hover:border-blue-100 transition-all">
-                                <div class="flex justify-between items-start gap-2 border-b-2 border-blue-50 pb-2 cursor-pointer" onclick="toggleTaskGrading('${t.id}')">
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex gap-1 items-center mb-1 flex-wrap">
-                                            <span class="text-[8px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-black uppercase">${t.type}</span>
-                                            <span class="text-[8px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-black uppercase">${t.category}</span>
-                                            ${isAllFinished ? '<span class="text-[8px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded font-black uppercase">TUNTAS</span>' : ''}
-                                        </div>
-                                        <h5 class="font-black text-xs text-gray-800 truncate">${t.title}</h5>
-                                        <p class="text-[9px] text-gray-400">Target selesai: ${t.due_date}</p>
-                                    </div>
-                                    <div class="flex gap-1.5 items-center shrink-0">
-                                        <button onclick="event.stopPropagation(); bukaFormEditTugas('${t.id}')" class="text-blue-500 p-1 hover:bg-blue-50 rounded-lg"><i class="fa-solid fa-pen text-xs"></i></button>
-                                        <button onclick="event.stopPropagation(); hapusTugas('${t.id}')" class="text-red-500 p-1 hover:bg-red-50 rounded-lg"><i class="fa-solid fa-trash text-xs"></i></button>
-                                        <i class="fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'} text-gray-400 ml-1 text-xs"></i>
-                                    </div>
-                                </div>
-
-                                <div class="mt-2">
-                                    <div class="flex justify-between text-[9px] font-black text-gray-500 uppercase mb-1">
-                                        <span>Ketuntasan: ${completionRate}%</span>
-                                        <span>${completed}/${totalAssigned} Siswa</span>
-                                    </div>
-                                    <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                                        <div class="bg-blue-500 h-full transition-all duration-300" style="width: ${completionRate}%"></div>
-                                    </div>
-                                </div>
-
-                                <!-- CONDITIONAL EXPANSION GRADING SHEET -->
-                                ${isExpanded ? `
-                                    <div class="mt-3 space-y-2 bg-gray-50/50 p-2 rounded-xl border border-gray-100 card-pop">
-                                        <div class="flex justify-between items-center pb-1.5 border-b border-gray-200">
-                                            <span class="text-[8px] font-black text-gray-400 uppercase">Lembar Penilaian Siswa:</span>
-                                            <button onclick="markAllTaskSubmissionsAsDone('${t.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[9px] px-2 py-0.5 rounded border border-emerald-700">✓ Tandai Semua Selesai</button>
-                                        </div>
-
-                                        <div class="space-y-1 max-h-48 overflow-y-auto divide-y divide-gray-100">
-                                            ${sortedStudents.map(s => {
-                                                const subm = taskSubms.find(sub => sub.student_id === s.id);
-                                                const currentStatus = subm ? subm.status : 'Belum Kumpul';
-                                                const currentScore = (subm && subm.score !== null && subm.score !== undefined) ? subm.score : '';
-                                                
-                                                let selectColor = "bg-white text-gray-800 border-gray-300";
-                                                if (currentStatus === 'Menunggu Verifikasi') selectColor = "bg-yellow-50 text-yellow-700 border-yellow-300 animate-pulse font-black";
-                                                if (currentStatus === 'Sudah Kumpul') selectColor = "bg-green-50 text-green-700 border-green-300 font-bold";
-                                                if (currentStatus === 'Remedial') selectColor = "bg-red-50 text-red-700 border-red-300 font-bold";
-
-                                                const scoreStyle = (currentScore !== '' && Number(currentScore) < 70) ? "border-red-500 text-red-600 bg-red-50 font-black" : "border-gray-300 text-gray-800 bg-white font-bold";
-
-                                                // Kita menggunakan event blur (saat kursor pindah kolom) sehingga kolom tidak langsung ter-refresh saat mengetik nilai
-                                                return `
-                                                    <div class="flex justify-between items-center py-1 text-xs gap-1">
-                                                        <span class="font-medium text-gray-700 truncate flex-1">${s.name}</span>
-                                                        <div class="flex items-center gap-1 shrink-0">
-                                                            <input type="number" value="${currentScore}" placeholder="Nilai" onblur="updateSubmissionScore('${t.id}', '${s.id}', this.value)" class="w-12 p-1 text-[10px] rounded border text-center ${scoreStyle}">
-                                                            <select onchange="updateSubmissionStatus('${t.id}', '${s.id}', this.value)" class="p-1 text-[10px] rounded border ${selectColor}">
-                                                                <option value="Belum Kumpul" ${currentStatus === 'Belum Kumpul' ? 'selected' : ''}>🔴 Belum</option>
-                                                                <option value="Menunggu Verifikasi" ${currentStatus === 'Menunggu Verifikasi' ? 'selected' : ''}>🟡 Verifikasi</option>
-                                                                <option value="Sudah Kumpul" ${currentStatus === 'Sudah Kumpul' ? 'selected' : ''}>🟢 Selesai</option>
-                                                                <option value="Remedial" ${currentStatus === 'Remedial' ? 'selected' : ''}>⚠️ Remedial</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                `;
-                                            }).join('')}
-                                        </div>
-                                    </div>
-                                ` : ''}
-
-                                <div class="mt-2 pt-2 border-t border-dashed border-gray-200 flex justify-between items-center text-[10px] font-black uppercase text-gray-650">
-                                    <span>Jumlah Nilai: <span class="text-blue-600">${totalScoreVal}</span></span>
-                                    <span>Rata-Rata: <span class="${averageScoreVal < 70 ? 'text-red-600' : 'text-green-600'}">${averageScoreVal}</span></span>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[9px] font-black text-gray-500 block mb-1 uppercase tracking-wider">Tipe Aktivitas:</label>
+                                <div class="relative">
+                                    <span class="absolute left-2.5 top-3 text-xs text-gray-400"><i class="fa-solid fa-bookmark"></i></span>
+                                    <select id="in-tugas-type" class="w-full pl-8 pr-2 py-2 text-xs rounded-xl bg-white border-2 border-blue-100 text-gray-800 font-bold focus:outline-none focus:border-blue-500">
+                                        <option value="Tugas">📝 Tugas Akademik</option>
+                                        <option value="Misi">⚔️ Misi Karakter (RPG)</option>
+                                    </select>
                                 </div>
                             </div>
-                        `;
+                            <div>
+                                <label class="text-[9px] font-black text-gray-500 block mb-1 uppercase tracking-wider">Mata Pelajaran:</label>
+                                <div class="relative">
+                                    <span class="absolute left-2.5 top-3 text-xs text-gray-400"><i class="fa-solid fa-folder-open"></i></span>
+                                    <select id="in-tugas-category" class="w-full pl-8 pr-2 py-2 text-xs rounded-xl bg-white border-2 border-blue-100 text-gray-800 font-bold focus:outline-none focus:border-blue-500">
+                                        <option value="PKN">PKN</option>
+                                        <option value="BINA">BINA</option>
+                                        <option value="MTK">MTK</option>
+                                        <option value="IPAS">IPAS</option>
+                                        <option value="SENI">SENI</option>
+                                        <option value="B.ING">B.ING</option>
+                                        <option value="KKA">KKA</option>
+                                        <option value="LITERASI">LITERASI</option>
+                                        <option value="LAINNYA">LAINNYA</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-[9px] font-black text-gray-500 block mb-1 uppercase tracking-wider">Judul Pembelajaran:</label>
+                            <input type="text" id="in-tugas-title" placeholder="Cth: Perkalian Pecahan atau Piket Bersih..." class="w-full p-2.5 text-xs bg-white border-2 border-blue-100 rounded-xl text-gray-800 font-extrabold focus:outline-none focus:border-blue-500 shadow-sm">
+                        </div>
+
+                        <div>
+                            <label class="text-[9px] font-black text-gray-500 block mb-1 uppercase tracking-wider">Rincian Instruksi / Catatan:</label>
+                            <textarea id="in-tugas-desc" placeholder="Tuliskan petunjuk pengerjaan bagi siswa..." class="w-full p-2.5 text-xs bg-white border-2 border-blue-100 rounded-xl text-gray-800 font-semibold focus:outline-none focus:border-blue-500 shadow-sm h-16 resize-none"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="text-[9px] font-black text-gray-500 block mb-1 uppercase tracking-wider">Batas Waktu Pengumpulan:</label>
+                            <input type="date" id="in-tugas-date" value="${getTodayDate()}" class="w-full p-2.5 text-xs bg-white border-2 border-blue-100 rounded-xl text-gray-750 font-black focus:outline-none focus:border-blue-500 shadow-sm">
+                        </div>
+                        
+                        <div class="flex gap-2 pt-1">
+                            <button onclick="simpanDataTugas()" class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs py-3 rounded-xl shadow-md border-b-4 border-indigo-800 active:translate-y-1 active:border-b-0 transition-all flex items-center justify-center gap-1.5"><i class="fa-solid fa-cloud-arrow-up"></i> Simpan & Bagikan</button>
+                            <button onclick="batalEditTugasForm()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs px-4 py-3 rounded-xl">Batal</button>
+                        </div>
+                    </div>
+
+                    <!-- DAFTAR TUGAS DI SEBELAH KANAN (lg:col-span-8 atau lg:col-span-12 jika form tersembunyi) -->
+                    <div id="tugas-list-area" class="lg:col-span-12 space-y-3 transition-all duration-300">
+                        
+                        <!-- BAR FILTER TAB CEPAT -->
+                        <div class="flex bg-slate-100 p-1 rounded-xl gap-1">
+                            <button onclick="filterTaskTab('Semua')" class="flex-1 py-2 text-center text-xs font-black rounded-lg flex items-center justify-center gap-1.5 transition ${activeTaskTabFilter === 'Semua' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}">
+                                🌐 Semua <span class="bg-slate-200 text-slate-800 text-[9px] px-1.5 py-0.5 rounded-full font-extrabold">${tasks.length}</span>
+                            </button>
+                            <button onclick="filterTaskTab('Tugas')" class="flex-1 py-2 text-center text-xs font-black rounded-lg flex items-center justify-center gap-1.5 transition ${activeTaskTabFilter === 'Tugas' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}">
+                                📝 Akademis <span class="bg-blue-100 text-blue-800 text-[9px] px-1.5 py-0.5 rounded-full font-extrabold">${countTugas}</span>
+                            </button>
+                            <button onclick="filterTaskTab('Misi')" class="flex-1 py-2 text-center text-xs font-black rounded-lg flex items-center justify-center gap-1.5 transition ${activeTaskTabFilter === 'Misi' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}">
+                                ⚔️ Misi RPG <span class="bg-amber-100 text-amber-800 text-[9px] px-1.5 py-0.5 rounded-full font-extrabold">${countMisi}</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+            `;
+
+            if (filteredTasks.length === 0) {
+                html += `
+                    <div class="text-center py-8 bg-white border-2 border-dashed border-gray-200 rounded-3xl p-5">
+                        <img src="https://placehold.co/100x100/eff6ff/1e40af?text=📋" class="mx-auto rounded-full mb-3" alt="Empty">
+                        <p class="text-xs text-gray-400 font-bold">Belum ada tugas atau misi terdaftar pada tab filter ini.</p>
+                    </div>
+                `;
+            } else {
+                filteredTasks.forEach(t => {
+                    const taskSubms = taskSubmissions.filter(s => s.task_id === t.id);
+                    const totalAssigned = taskSubms.length;
+                    const completed = taskSubms.filter(s => s.status === 'Sudah Kumpul').length;
+                    const completionRate = totalAssigned > 0 ? Math.round((completed / totalAssigned) * 100) : 0;
+                    
+                    const isAllFinished = isTaskFullyCompleted(t.id);
+                    const isExpanded = expandedTaskId === t.id;
+
+                    let totalScoreVal = 0;
+                    let gradedCount = 0;
+                    taskSubms.forEach(sub => {
+                        if (sub.score !== null && sub.score !== undefined && sub.score !== '') {
+                            totalScoreVal += Number(sub.score);
+                            gradedCount++;
+                        }
                     });
+                    const averageScoreVal = gradedCount > 0 ? Math.round((totalScoreVal / gradedCount) * 10) / 10 : 0;
+
+                    const sortedStudents = [...students].sort((a, b) => {
+                        const subA = taskSubms.find(sub => sub.student_id === a.id);
+                        const subB = taskSubms.find(sub => sub.student_id === b.id);
+                        const statusA = subA ? subA.status : 'Belum Kumpul';
+                        const statusB = subB ? subB.status : 'Belum Kumpul';
+                        const isUnfilledA = statusA !== 'Sudah Kumpul';
+                        const isUnfilledB = statusB !== 'Sudah Kumpul';
+                        if (isUnfilledA && !isUnfilledB) return -1;
+                        if (!isUnfilledA && isUnfilledB) return 1;
+                        return a.name.localeCompare(b.name);
+                    });
+
+                    // Gradasi warna kartu dinamis
+                    const borderGradient = t.type === 'Misi' ? 'border-amber-100 hover:border-amber-300' : 'border-blue-100 hover:border-blue-300';
+                    const iconHeader = t.type === 'Misi' ? 'fa-shield-halved text-amber-500' : 'fa-graduation-cap text-blue-500';
+
+                    html += `
+                        <div class="p-4 bg-white border-2 ${borderGradient} rounded-3xl shadow-sm hover:shadow-md transition-all duration-200">
+                            
+                            <!-- HEADER KARTU TUGAS -->
+                            <div class="flex justify-between items-start gap-3 pb-3 border-b border-gray-100 cursor-pointer" onclick="toggleTaskGrading('${t.id}')">
+                                <div class="flex items-start gap-2.5">
+                                    <div class="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-sm shrink-0">
+                                        <i class="fa-solid ${iconHeader}"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="flex gap-1.5 items-center mb-1 flex-wrap">
+                                            <span class="text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${t.type === 'Misi' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}">${t.type}</span>
+                                            <span class="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">${t.category}</span>
+                                            ${isAllFinished ? '<span class="text-[8px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-black uppercase">TUNTAS</span>' : ''}
+                                        </div>
+                                        <h5 class="font-black text-xs text-slate-800 truncate" title="${t.title}">${t.title}</h5>
+                                        <p class="text-[9px] text-gray-500 font-bold mt-0.5"><i class="fa-regular fa-clock mr-0.5"></i> Target: ${t.due_date}</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-1 items-center shrink-0">
+                                    <button onclick="event.stopPropagation(); bukaFormEditTugas('${t.id}')" class="text-blue-500 hover:bg-blue-50 p-2 rounded-xl transition"><i class="fa-solid fa-pen text-xs"></i></button>
+                                    <button onclick="event.stopPropagation(); hapusTugas('${t.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded-xl transition"><i class="fa-solid fa-trash text-xs"></i></button>
+                                    <span class="w-6 h-6 flex items-center justify-center text-slate-400 bg-slate-50 rounded-lg ml-1"><i class="fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'} text-[10px]"></i></span>
+                                </div>
+                            </div>
+
+                            <!-- PROGRES BAR -->
+                            <div class="mt-3">
+                                <div class="flex justify-between text-[9px] font-black text-gray-500 uppercase mb-1">
+                                    <span>Kemajuan Belajar: ${completionRate}%</span>
+                                    <span>${completed}/${totalAssigned} Siswa Kumpul</span>
+                                </div>
+                                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                    <div class="h-full transition-all duration-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] ${t.type === 'Misi' ? 'bg-gradient-to-r from-amber-400 to-yellow-500' : 'bg-gradient-to-r from-blue-500 to-indigo-600'}" style="width: ${completionRate}%"></div>
+                                </div>
+                            </div>
+
+                            <!-- LEMBAR PENILAIAN INDIVIDUAL (CONDITIONAL EXPAND) -->
+                            ${isExpanded ? `
+                                <div class="mt-4 space-y-3 bg-slate-50 p-3 rounded-2xl border border-slate-150 card-pop">
+                                    <div class="flex justify-between items-center pb-2 border-b border-gray-200">
+                                        <span class="text-[9px] font-black text-slate-500 uppercase flex items-center gap-1.5"><i class="fa-solid fa-clipboard-check text-blue-600"></i> Nilai & Verifikasi Siswa:</span>
+                                        <button onclick="markAllTaskSubmissionsAsDone('${t.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[9px] px-2.5 py-1 rounded-lg border-b-2 border-emerald-800 transition active:scale-95 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Semua Lulus</button>
+                                    </div>
+
+                                    <div class="space-y-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
+                                        ${sortedStudents.map(s => {
+                                            const subm = taskSubms.find(sub => sub.student_id === s.id);
+                                            const currentStatus = subm ? subm.status : 'Belum Kumpul';
+                                            const currentScore = (subm && subm.score !== null && subm.score !== undefined) ? subm.score : '';
+                                            
+                                            let selectColor = "bg-white text-gray-800 border-gray-200";
+                                            if (currentStatus === 'Menunggu Verifikasi') selectColor = "bg-yellow-100 text-yellow-800 border-yellow-300 animate-pulse font-black shadow-inner";
+                                            if (currentStatus === 'Sudah Kumpul') selectColor = "bg-green-100 text-green-800 border-green-300 font-bold";
+                                            if (currentStatus === 'Remedial') selectColor = "bg-red-100 text-red-800 border-red-300 font-bold";
+
+                                            const scoreStyle = (currentScore !== '' && Number(currentScore) < 70) ? "border-red-400 text-red-600 bg-red-50 font-black" : "border-gray-200 text-gray-800 bg-white font-bold";
+
+                                            return `
+                                                <div class="flex justify-between items-center py-2 text-xs gap-2">
+                                                    <span class="font-bold text-slate-700 truncate flex-1">${s.name}</span>
+                                                    <div class="flex items-center gap-1.5 shrink-0">
+                                                        <input type="number" value="${currentScore}" placeholder="Nilai" onblur="updateSubmissionScore('${t.id}', '${s.id}', this.value)" class="w-14 p-1.5 text-center text-xs rounded-lg border ${scoreStyle} focus:outline-none focus:border-blue-500">
+                                                        <select onchange="updateSubmissionStatus('${t.id}', '${s.id}', this.value)" class="p-1.5 text-[10px] rounded-lg border font-bold focus:outline-none ${selectColor}">
+                                                            <option value="Belum Kumpul" ${currentStatus === 'Belum Kumpul' ? 'selected' : ''}>🔴 Belum</option>
+                                                            <option value="Menunggu Verifikasi" ${currentStatus === 'Menunggu Verifikasi' ? 'selected' : ''}>🟡 Verif</option>
+                                                            <option value="Sudah Kumpul" ${currentStatus === 'Sudah Kumpul' ? 'selected' : ''}>🟢 Selesai</option>
+                                                            <option value="Remedial" ${currentStatus === 'Remedial' ? 'selected' : ''}>⚠️ Remed</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+
+                            <!-- STATISTIK AKUMULATIF TUGAS -->
+                            <div class="mt-3 pt-3 border-t border-dashed border-gray-150 flex justify-between items-center text-[10px] font-black uppercase text-gray-500">
+                                <span>Akumulasi Nilai: <span class="text-blue-600 font-extrabold">${totalScoreVal}</span></span>
+                                <span>Rata-Rata Kelas: <span class="px-2 py-0.5 rounded-md ${averageScoreVal < 70 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}">${averageScoreVal}</span></span>
+                            </div>
+                        </div>
+                    `;
                 });
             }
 
-            html += `</div>`;
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
             container.innerHTML = html;
+
+            // Jika mode desktop aktif, pertahankan tampilan form di sebelah kiri
+            if (isDesktopMode) {
+                const box = document.getElementById('form-tugas-box');
+                const list = document.getElementById('tugas-list-area');
+                if (box && list) {
+                    box.classList.remove('hidden');
+                    list.classList.remove('lg:col-span-12');
+                    list.classList.add('lg:col-span-7');
+                }
+            }
+        }
+
+        function filterTaskTab(filter) {
+            playSfx('click');
+            activeTaskTabFilter = filter;
+            renderTabTugas(document.getElementById('admin-panel-content'));
         }
 
         function toggleTaskGrading(taskId) {
@@ -2991,12 +2881,36 @@
 
         function bukaFormTambahTugas() {
             const el = document.getElementById('form-tugas-box');
+            const list = document.getElementById('tugas-list-area');
             if (el) {
+                if (isDesktopMode) {
+                    el.classList.remove('hidden');
+                    return;
+                }
+                
                 el.classList.toggle('hidden');
+                if (!el.classList.contains('hidden')) {
+                    document.getElementById('in-tugas-id').value = '';
+                    document.getElementById('in-tugas-title').value = '';
+                    document.getElementById('in-tugas-desc').value = '';
+                    list.classList.add('hidden');
+                } else {
+                    list.classList.remove('hidden');
+                }
+            }
+        }
+
+        function batalEditTugasForm() {
+            playSfx('click');
+            if (isDesktopMode) {
                 document.getElementById('in-tugas-id').value = '';
                 document.getElementById('in-tugas-title').value = '';
                 document.getElementById('in-tugas-desc').value = '';
+                return;
             }
+            
+            document.getElementById('form-tugas-box').classList.add('hidden');
+            document.getElementById('tugas-list-area').classList.remove('hidden');
         }
 
         async function simpanDataTugas() {
@@ -3043,7 +2957,6 @@
             }
 
             saveLocalBackup();
-            switchAdminTab('tugas');
             playSfx('success');
             await postToCloud("tasks", "upsert", newTugas);
             
@@ -3058,12 +2971,21 @@
                 });
             }
             updateClassAnalytics();
+            
+            if (!isDesktopMode) {
+                document.getElementById('form-tugas-box').classList.add('hidden');
+                document.getElementById('tugas-list-area').classList.remove('hidden');
+            }
+            switchAdminTab('tugas');
         }
 
         function bukaFormEditTugas(id) {
             const t = tasks.find(x => x.id === id);
             if (!t) return;
             document.getElementById('form-tugas-box').classList.remove('hidden');
+            if (!isDesktopMode) {
+                document.getElementById('tugas-list-area').classList.add('hidden');
+            }
             document.getElementById('in-tugas-id').value = t.id;
             document.getElementById('in-tugas-title').value = t.title;
             document.getElementById('in-tugas-desc').value = t.description;
@@ -3133,21 +3055,17 @@
 
             saveLocalBackup();
             updateClassAnalytics();
-            
-            // Render ulang parsial data rekap, agar tidak mengaburkan input focus kolom nilai berikutnya
             await postToCloud("task_submissions", "upsert", subm);
         }
 
         function renderTabRekapNilai(container) {
             let selectedCategory = document.getElementById('rekap-category-filter')?.value || 'PKN';
-            
             const catTasks = tasks.filter(t => t.category === selectedCategory);
-            
             const studentAverages = [];
+
             students.forEach(s => {
                 let sum = 0;
                 let count = 0;
-                
                 catTasks.forEach(t => {
                     const subm = taskSubmissions.find(sub => sub.task_id === t.id && sub.student_id === s.id);
                     if (subm && subm.score !== null && subm.score !== undefined && subm.score !== '') {
@@ -3155,7 +3073,6 @@
                         count++;
                     }
                 });
-                
                 const avg = count > 0 ? Math.round((sum / count) * 10) / 10 : 0;
                 studentAverages.push({
                     id: s.id,
@@ -3183,8 +3100,6 @@
                         <option value="LAINNYA" ${selectedCategory === 'LAINNYA' ? 'selected' : ''}>LAINNYA</option>
                     </select>
                 </div>
-
-                <p class="text-[10px] text-gray-500 mb-3">Analisis perolehan nilai rata-rata akademis dan ranking kelas siswa pada mata pelajaran <b>${selectedCategory}</b>.</p>
 
                 <div class="space-y-3">
                     <div class="overflow-x-auto bg-white rounded-2xl border-2 border-indigo-100 p-2 shadow-sm">
@@ -3238,8 +3153,6 @@
         function renderTabIdentitas(container) {
             let html = `
                 <h4 class="font-black text-xs text-pink-600 uppercase tracking-wider mb-2">Edit Identitas & Profil Sistem</h4>
-                <p class="text-[10px] text-gray-500 mb-3">Sesuaikan metadata sekolah dan aplikasi secara dinamis untuk memperbarui penanda teks di seluruh halaman.</p>
-                
                 <div class="bg-white p-3 rounded-2xl border-2 border-pink-100 space-y-3 shadow-sm">
                     <div>
                         <label class="text-[9px] text-gray-500 font-black uppercase tracking-wide block mb-1">Nama Sekolah</label>
@@ -3300,8 +3213,6 @@
         function renderTabRapor(container) {
             let html = `
                 <h4 class="font-black text-xs text-teal-800 uppercase tracking-wider mb-2">Cetak Rapor & Rekapitulasi Resmi</h4>
-                <p class="text-[10px] text-gray-500 mb-3">Pilih format pencetakan rapor individu maupun rekapitulasi presensi bulanan dalam tata letak Landscape resmi.</p>
-                
                 <div class="grid grid-cols-2 gap-2 mb-4">
                     <button onclick="cetakRekapBulananLandscape()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black py-2.5 rounded-xl border-b-2 border-indigo-950 flex items-center justify-center gap-2 btn-3d"><i class="fa-solid fa-file-invoice"></i> CETAK REKAP LANDSCAPE</button>
                     <button onclick="cetakRaporKolektif('Semua')" class="bg-teal-600 hover:bg-teal-500 text-white text-[10px] font-black py-2.5 rounded-xl border-b-2 border-teal-900 flex items-center justify-center gap-2 btn-3d"><i class="fa-solid fa-print"></i> CETAK SEMUA RAPOR</button>
@@ -3405,22 +3316,15 @@
                             <div class="subtitle">${(appSettings.school_name || "SD NEGERI 4 RAMBUTAN").toUpperCase()} - ${(appSettings.class_name || "KELAS 5").toUpperCase()}</div>
                         </div>
                         <table class="meta">
-                            <tr>
-                                <td width="25%"><b>Nama Siswa</b></td><td width="3%">:</td><td width="72%">${s.name}</td>
-                            </tr>
-                            <tr>
-                                <td><b>Jenis Kelamin</b></td><td>:</td><td>${s.gender === 'Putra' ? 'Laki-Laki' : 'Perempuan'}</td>
-                            </tr>
-                            <tr>
-                                <td><b>Tanggal Cetak</b></td><td>:</td><td>${new Date().toLocaleDateString('id-ID')}</td>
-                            </tr>
+                            <tr><td width="25%"><b>Nama Siswa</b></td><td width="3%">:</td><td width="72%">${s.name}</td></tr>
+                            <tr><td><b>Jenis Kelamin</b></td><td>:</td><td>${s.gender === 'Putra' ? 'Laki-Laki' : 'Perempuan'}</td></tr>
+                            <tr><td><b>Tanggal Cetak</b></td><td>:</td><td>${new Date().toLocaleDateString('id-ID')}</td></tr>
                         </table>
                         <div class="score-box">
                             <div style="font-size: 13px; margin-bottom: 5px;">AKUMULASI PENILAIAN KARAKTER</div>
                             <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">Kebaikan: ${s.points_good} Pts | Pelanggaran: ${s.points_bad} Pts</div>
                             <div style="font-size: 14px; letter-spacing: 1px;">PREDIKAT KARAKTER AKHIR: <b>${predikat}</b></div>
                         </div>
-                        <div><b>RIWAYAT LOG AKTIVITAS HARIAN:</b></div>
                         <table class="table">
                             <thead>
                                 <tr>
@@ -3439,7 +3343,6 @@
                                         <td>${l.type === 'Kebaikan' ? '+' : '-'}${l.points} Poin</td>
                                     </tr>
                                 `).join('')}
-                                ${myLogs.length === 0 ? '<tr><td colspan="4" style="text-align:center;">Belum memiliki catatan log karakter.</td></tr>' : ''}
                             </tbody>
                         </table>
                         <div class="footer">
@@ -3538,7 +3441,6 @@
                                         </tr>
                                     `;
                                 }).join('')}
-                                ${students.length === 0 ? '<tr><td colspan="8">Belum ada siswa terdaftar</td></tr>' : ''}
                                 
                                 <tr style="background-color: #f9f9f9; font-weight: bold; border-top: 2px solid #000;">
                                     <td colspan="3">PERSENTASE KOLEKTIF TOTAL KELAS</td>
@@ -3605,7 +3507,6 @@
                             <div class="kop-title">REKAPITULASI NILAI AKADEMIK RESMI</div>
                             <div class="kop-subtitle">${(appSettings.school_name || "SD NEGERI 4 RAMBUTAN").toUpperCase()} - ${(appSettings.class_name || "KELAS 5").toUpperCase()}</div>
                             <div class="kop-subtitle" style="font-weight: bold; font-size: 11px; margin-top:5px;">MATA PELAJARAN: ${selectedCat.toUpperCase()}</div>
-                            <div class="kop-subtitle" style="font-weight: normal; font-size: 10px; margin-top: 3px;">Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}</div>
                         </div>
 
                         <table class="table">
@@ -3653,18 +3554,8 @@
                                         </tr>
                                     `;
                                 }).join('')}
-                                ${students.length === 0 ? `<tr><td colspan="${filteredTasks.length + 5}">Belum ada siswa terdaftar</td></tr>` : ''}
                             </tbody>
                         </table>
-
-                        <div class="footer">
-                            <div class="sig">
-                                Mengetahui,<br>Kepala Sekolah<br><br><br><br><b>${appSettings.kepsek_name || 'H. Mulyadi, M.Pd.'}</b><br>NIP. ${appSettings.kepsek_nip || '-'}
-                            </div>
-                            <div class="sig">
-                                Rambutan, ${new Date().toLocaleDateString('id-ID')}<br>Guru Kelas 5<br><br><br><br><b>${appSettings.guru_name || 'Bella Lifia, S.Pd.'}</b><br>NIP. ${appSettings.guru_nip || '-'}
-                            </div>
-                        </div>
                     </div>
                 </body>
                 </html>
