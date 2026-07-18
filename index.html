@@ -75,6 +75,15 @@
             100% { transform: translateY(0px); }
         }
 
+        .blink-danger {
+            animation: blinkRed 1.2s infinite;
+        }
+
+        @keyframes blinkRed {
+            0%, 100% { background-color: #fef2f2; border-color: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+            50% { background-color: #fee2e2; border-color: #b91c1c; box-shadow: 0 0 20px rgba(185, 28, 28, 0.7); }
+        }
+
         ::-webkit-scrollbar {
             display: none;
         }
@@ -82,8 +91,8 @@
 </head>
 <body class="text-gray-800 h-screen flex flex-col items-center justify-start overflow-hidden">
 
-    <!-- Container Utama Layout HP -->
-    <div class="w-full max-w-md h-full bg-white shadow-2xl relative overflow-hidden flex flex-col">
+    <!-- Container Utama Layout (Responsive Desktop / HP) -->
+    <div id="main-container" class="w-full max-w-md h-full bg-white shadow-2xl relative overflow-hidden flex flex-col transition-all duration-300">
         
         <!-- Status Indikator Sinkronisasi Awan -->
         <div id="cloud-sync-indicator" class="hidden absolute top-4 right-4 z-50 bg-green-600 text-white font-extrabold text-[10px] px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 animate-pulse">
@@ -230,6 +239,17 @@
             <!-- Content Area Siswa -->
             <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-12">
                 
+                <!-- ALERT KAS BERKEDIP (Ditampilkan jika ada tunggakan) -->
+                <div id="student-kas-alert" class="hidden p-4 rounded-3xl border-4 blink-danger flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-circle-exclamation text-2xl animate-bounce"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-black text-xs text-red-800 uppercase">Tagihan Kas Belum Terbayar!</h4>
+                        <p class="text-[10px] text-gray-700 font-bold mt-0.5" id="student-kas-alert-msg">Kamu memiliki tunggakan kas sebesar Rp 0. Segera bayar ke bendahara ya!</p>
+                    </div>
+                </div>
+
                 <!-- SUBTAB 1: KARAKTER & KEHADIRAN -->
                 <div id="student-tab-karakter" class="space-y-4">
                     
@@ -350,7 +370,7 @@
                             <span id="display-std-academic-total-pct" class="text-xl font-black text-indigo-700 bg-white px-2.5 py-1.5 border border-indigo-200 rounded-xl">0%</span>
                         </div>
 
-                        <p class="text-[10px] text-gray-500">Selesaikan tugas akademik tepat waktu untuk mendapatkan apresiasi dan menjaga performa belajarmu!</p>
+                        <p class="text-[10px] text-gray-500 font-semibold text-emerald-700 bg-emerald-50 p-2.5 border border-emerald-200 rounded-xl">Kamu dapat mengusulkan/menginputkan nilai tugasmu langsung pada masing-masing tugas di bawah ini agar diverifikasi Pak Guru!</p>
                         
                         <div id="student-tasks-list" class="space-y-3">
                         </div>
@@ -376,7 +396,8 @@
         <!-- ========================================== -->
         <!-- VIEW 3: PORTAL GURU (ADMIN - CERAH GAMIFIED)-->
         <!-- ========================================== -->
-        <div id="view-admin" class="hidden absolute inset-0 flex flex-col bg-gradient-to-br from-[#f8fafc] to-[#e0f2fe]">
+        <div id="view-admin" class="hidden absolute inset-0 flex flex-col bg-gradient-to-br from-[#f8fafc] to-[#e0f2fe] overflow-y-auto">
+            
             <!-- Header Admin (Cerah & Premium) -->
             <div class="bg-gradient-to-r from-teal-500 to-emerald-600 text-white p-4 pt-6 flex justify-between items-center shadow-md rounded-b-3xl shrink-0">
                 <div class="flex items-center gap-3">
@@ -388,79 +409,96 @@
                         <span class="text-[9px] text-white/80 font-bold uppercase tracking-wider" id="adm-display-school">SDN 4 Rambutan - KELAS 5</span>
                     </div>
                 </div>
-                <button onclick="logout()" class="w-9 h-9 bg-emerald-800 rounded-full text-white flex items-center justify-center btn-3d border-b-2 border-emerald-950">
-                    <i class="fa-solid fa-right-from-bracket text-xs"></i>
-                </button>
-            </div>
-
-            <!-- Widget Statistik Ringkasan Kelas Dinamis -->
-            <div class="px-4 pt-3 shrink-0 space-y-2">
-                <div class="grid grid-cols-2 gap-2">
-                    <div class="bg-white p-2.5 rounded-2xl border-2 border-emerald-100 shadow-sm flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-                            <i class="fa-solid fa-calendar-day text-xs"></i>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <span class="text-[8px] text-gray-400 font-extrabold uppercase block leading-none">Kehadiran Kelas</span>
-                            <span id="class-monthly-presence-rate" class="text-[10px] font-black text-emerald-700 truncate block">0% Bulan Ini</span>
-                        </div>
-                    </div>
-                    <div class="bg-white p-2.5 rounded-2xl border-2 border-blue-100 shadow-sm flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-                            <i class="fa-solid fa-clipboard-check text-xs"></i>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <span class="text-[8px] text-gray-400 font-extrabold uppercase block leading-none">Ketuntasan Tugas</span>
-                            <span id="class-monthly-tasks-rate" class="text-[10px] font-black text-blue-700 truncate block">0% Selesai</span>
-                        </div>
-                    </div>
+                <div class="flex items-center gap-2">
+                    <!-- Tombol Pengalih Desktop View -->
+                    <button onclick="toggleDesktopMode()" title="Beralih Mode Desktop/HP" class="w-9 h-9 bg-teal-700 hover:bg-teal-800 text-white rounded-full flex items-center justify-center btn-3d border-b-2 border-teal-900 transition-all">
+                        <i id="desktop-toggle-icon" class="fa-solid fa-desktop text-xs"></i>
+                    </button>
+                    <button onclick="logout()" class="w-9 h-9 bg-emerald-800 rounded-full text-white flex items-center justify-center btn-3d border-b-2 border-emerald-950">
+                        <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                    </button>
                 </div>
             </div>
 
-            <!-- Konten Navigasi Menu Guru (Grid RPG) -->
-            <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-20">
-                <div class="grid grid-cols-3 gap-2">
-                    <button onclick="switchAdminTab('siswa')" id="tab-btn-siswa" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
-                        <i class="fa-solid fa-users text-emerald-500 text-lg"></i>
-                        <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Kelola Siswa</span>
-                    </button>
-                    <button onclick="switchAdminTab('poin')" id="tab-btn-poin" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
-                        <i class="fa-solid fa-star-half-stroke text-yellow-500 text-lg"></i>
-                        <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Input Poin</span>
-                    </button>
-                    <button onclick="switchAdminTab('restitusi')" id="tab-btn-restitusi" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm relative transition active:scale-95">
-                        <div id="badge-verif-count" class="hidden absolute -top-1 -right-1 bg-red-600 text-white font-black text-[9px] w-5 h-5 rounded-full flex items-center justify-center">0</div>
-                        <i class="fa-solid fa-heart-pulse text-rose-500 text-lg"></i>
-                        <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Restitusi</span>
-                    </button>
-                    <button onclick="switchAdminTab('absen')" id="tab-btn-absen" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
-                        <i class="fa-solid fa-calendar-check text-violet-500 text-lg"></i>
-                        <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Absensi</span>
-                    </button>
-                    <button onclick="switchAdminTab('kas')" id="tab-btn-kas" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
-                        <i class="fa-solid fa-sack-dollar text-yellow-600 text-lg"></i>
-                        <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Uang Kas</span>
-                    </button>
-                    <button onclick="switchAdminTab('tugas')" id="tab-btn-tugas" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
-                        <i class="fa-solid fa-tasks text-blue-500 text-lg"></i>
-                        <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Tugas & Misi</span>
-                    </button>
-                    <button onclick="switchAdminTab('rekap_nilai')" id="tab-btn-rekap_nilai" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
-                        <i class="fa-solid fa-graduation-cap text-indigo-500 text-lg"></i>
-                        <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Rekap Nilai</span>
-                    </button>
-                    <button onclick="switchAdminTab('identitas')" id="tab-btn-identitas" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
-                        <i class="fa-solid fa-sliders text-pink-500 text-lg"></i>
-                        <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Identitas</span>
-                    </button>
-                    <button onclick="switchAdminTab('rapor')" id="tab-btn-rapor" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
-                        <i class="fa-solid fa-file-invoice text-teal-600 text-lg"></i>
-                        <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Cetak Rapor</span>
-                    </button>
+            <!-- Dashboard Wrapper untuk Pendekatan Dual Column Mode Desktop -->
+            <div id="desktop-wrapper" class="flex-1 flex flex-col p-4 gap-4 overflow-y-auto">
+                
+                <!-- Widget Statistik Ringkasan Kelas Dinamis -->
+                <div class="w-full shrink-0 space-y-2">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-white p-2.5 rounded-2xl border-2 border-emerald-100 shadow-sm flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                                <i class="fa-solid fa-calendar-day text-xs"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <span class="text-[8px] text-gray-400 font-extrabold uppercase block leading-none">Kehadiran Kelas</span>
+                                <span id="class-monthly-presence-rate" class="text-[10px] font-black text-emerald-700 truncate block">0% Bulan Ini</span>
+                            </div>
+                        </div>
+                        <div class="bg-white p-2.5 rounded-2xl border-2 border-blue-100 shadow-sm flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                                <i class="fa-solid fa-clipboard-check text-xs"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <span class="text-[8px] text-gray-400 font-extrabold uppercase block leading-none">Ketuntasan Tugas</span>
+                                <span id="class-monthly-tasks-rate" class="text-[10px] font-black text-blue-700 truncate block">0% Selesai</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Bagian Kerja Dinamis sesuai Tab Guru -->
-                <div id="admin-panel-content" class="bg-white p-4 rounded-3xl border-2 border-emerald-100 shadow-md text-sm space-y-3">
+                <div id="desktop-inner-layout" class="flex flex-col gap-4">
+                    
+                    <!-- Left Sidebar - Menu Grid (Selalu Tampil) -->
+                    <div id="desktop-menu-sidebar" class="w-full space-y-2">
+                        <span class="text-[10px] font-black text-teal-800 uppercase tracking-widest block mb-1">🧭 Navigasi Panel Kerja</span>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="switchAdminTab('siswa')" id="tab-btn-siswa" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
+                                <i class="fa-solid fa-users text-emerald-500 text-lg"></i>
+                                <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Kelola Siswa</span>
+                            </button>
+                            <button onclick="switchAdminTab('poin')" id="tab-btn-poin" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
+                                <i class="fa-solid fa-star-half-stroke text-yellow-500 text-lg"></i>
+                                <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Input Poin</span>
+                            </button>
+                            <button onclick="switchAdminTab('restitusi')" id="tab-btn-restitusi" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm relative transition active:scale-95">
+                                <div id="badge-verif-count" class="hidden absolute -top-1 -right-1 bg-red-600 text-white font-black text-[9px] w-5 h-5 rounded-full flex items-center justify-center">0</div>
+                                <i class="fa-solid fa-heart-pulse text-rose-500 text-lg"></i>
+                                <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Restitusi</span>
+                            </button>
+                            <button onclick="switchAdminTab('absen')" id="tab-btn-absen" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
+                                <i class="fa-solid fa-calendar-check text-violet-500 text-lg"></i>
+                                <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Absensi</span>
+                            </button>
+                            <button onclick="switchAdminTab('kas')" id="tab-btn-kas" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
+                                <i class="fa-solid fa-sack-dollar text-yellow-600 text-lg"></i>
+                                <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Uang Kas</span>
+                            </button>
+                            <button onclick="switchAdminTab('tugas')" id="tab-btn-tugas" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
+                                <i class="fa-solid fa-tasks text-blue-500 text-lg"></i>
+                                <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Tugas & Misi</span>
+                            </button>
+                            <button onclick="switchAdminTab('rekap_nilai')" id="tab-btn-rekap_nilai" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
+                                <i class="fa-solid fa-graduation-cap text-indigo-500 text-lg"></i>
+                                <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Rekap Nilai</span>
+                            </button>
+                            <button onclick="switchAdminTab('identitas')" id="tab-btn-identitas" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
+                                <i class="fa-solid fa-sliders text-pink-500 text-lg"></i>
+                                <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Identitas</span>
+                            </button>
+                            <button onclick="switchAdminTab('rapor')" id="tab-btn-rapor" class="p-2 bg-white border-2 border-emerald-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95">
+                                <i class="fa-solid fa-file-invoice text-teal-600 text-lg"></i>
+                                <span class="font-black text-[9px] text-emerald-800 uppercase text-center">Cetak Rapor</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Right Workspace Panel (Konten Utama Tab) -->
+                    <div id="desktop-main-workspace" class="w-full">
+                        <div id="admin-panel-content" class="bg-white p-4 rounded-3xl border-2 border-emerald-100 shadow-md text-sm space-y-3">
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -481,7 +519,7 @@
                 <h3 class="text-md font-black text-gray-800 mb-1">Akses Portal Guru</h3>
                 <p class="text-[10px] text-gray-400 mb-4">Masukkan PIN Pengaman Anda.</p>
                 
-                <input type="password" id="admin-pin" placeholder="PIN Rahasia" class="w-full p-2.5 text-center text-xl tracking-widest font-black rounded-xl bg-gray-50 border-2 border-emerald-300 focus:outline-none focus:border-emerald-500 mb-4 text-gray-800">
+                <input type="password" id="admin-pin" placeholder="PIN Rahasia (1234)" class="w-full p-2.5 text-center text-xl tracking-widest font-black rounded-xl bg-gray-50 border-2 border-emerald-300 focus:outline-none focus:border-emerald-500 mb-4 text-gray-800">
                 
                 <button onclick="verifyAdminPin()" class="btn-3d w-full bg-emerald-600 text-white font-black py-2.5 rounded-xl border-b-4 border-emerald-800">
                     BUKA PORTAL GURU
@@ -595,6 +633,7 @@
         let goodPresets = []; 
         let tasks = [];
         let taskSubmissions = [];
+        let kasAlerts = {}; // Menyimpan data tagihan/peringatan kas murid: { studentId: nominal }
         
         // Konfigurasi default
         let appSettings = {
@@ -604,7 +643,7 @@
             guru_nip: "19940812 202012 2 012",
             kepsek_name: "H. Mulyadi, M.Pd.",
             kepsek_nip: "19720503 199603 1 003",
-            app_version: "v2.5.0-RPG"
+            app_version: "v2.6.0-Premium"
         };
 
         let currentStudent = null;
@@ -612,6 +651,7 @@
         let currentStudentSubTab = 'karakter';
         let expandedTaskId = null; // Menahan ID tugas yang sedang dibuka untuk grading
         let activeRestitusiSubTab = 'pending'; // Sub-tab restitusi pada panel guru ('pending' atau 'preset')
+        let isDesktopMode = false; // Mode Desktop global
 
         // Custom modal Promise resolvers
         let confirmResolve;
@@ -635,6 +675,7 @@
             if (localStorage.getItem('br_tasks')) tasks = JSON.parse(localStorage.getItem('br_tasks'));
             if (localStorage.getItem('br_submissions')) taskSubmissions = JSON.parse(localStorage.getItem('br_submissions'));
             if (localStorage.getItem('br_settings')) appSettings = JSON.parse(localStorage.getItem('br_settings'));
+            if (localStorage.getItem('br_kas_alerts')) kasAlerts = JSON.parse(localStorage.getItem('br_kas_alerts'));
         }
 
         function saveLocalBackup() {
@@ -649,12 +690,13 @@
             localStorage.setItem('br_tasks', JSON.stringify(tasks));
             localStorage.setItem('br_submissions', JSON.stringify(taskSubmissions));
             localStorage.setItem('br_settings', JSON.stringify(appSettings));
+            localStorage.setItem('br_kas_alerts', JSON.stringify(kasAlerts));
         }
 
         async function syncFromCloud() {
             toggleCloudSync(true);
             try {
-                const [rStud, rLog, rRestL, rRestR, rAtt, rKas, rPres, rGoodPres, rTask, rSubm, rSettings] = await Promise.all([
+                const [rStud, rLog, rRestL, rRestR, rAtt, rKas, rPres, rGoodPres, rTask, rSubm, rSettings, rAlerts] = await Promise.all([
                     supabaseClient.from('students').select('*').order('name', { ascending: true }),
                     supabaseClient.from('logs').select('*').order('id', { ascending: false }),
                     supabaseClient.from('restitusi_list').select('*'),
@@ -665,7 +707,8 @@
                     supabaseClient.from('good_presets').select('*').order('title', { ascending: true }),
                     supabaseClient.from('tasks').select('*').order('due_date', { ascending: true }),
                     supabaseClient.from('task_submissions').select('*'),
-                    supabaseClient.from('app_settings').select('*')
+                    supabaseClient.from('app_settings').select('*'),
+                    supabaseClient.from('kas_alerts').select('*')
                 ]);
 
                 if (rStud.data) students = rStud.data;
@@ -684,6 +727,14 @@
                     if (row && row.value) appSettings = row.value;
                 }
 
+                if (rAlerts.data) {
+                    const alertsObj = {};
+                    rAlerts.data.forEach(item => {
+                        alertsObj[item.student_id] = item.amount;
+                    });
+                    kasAlerts = alertsObj;
+                }
+
                 saveLocalBackup();
                 updateDynamicSchoolIdentity();
                 renderDashboardStats();
@@ -698,6 +749,43 @@
             } finally {
                 toggleCloudSync(false);
             }
+        }
+
+        // Fungsi Pengalih Mode Desktop untuk Guru
+        function toggleDesktopMode() {
+            playSfx('click');
+            const container = document.getElementById('main-container');
+            const dInner = document.getElementById('desktop-inner-layout');
+            const dMenu = document.getElementById('desktop-menu-sidebar');
+            const dWorkspace = document.getElementById('desktop-main-workspace');
+            const icon = document.getElementById('desktop-toggle-icon');
+
+            isDesktopMode = !isDesktopMode;
+
+            if (isDesktopMode) {
+                // Konfigurasi ke mode Desktop (Lebar, Dual-Pane)
+                container.classList.remove('max-w-md');
+                container.classList.add('max-w-6xl');
+                dInner.classList.remove('flex-col');
+                dInner.classList.add('flex-row', 'items-start');
+                dMenu.classList.remove('w-full');
+                dMenu.classList.add('w-1/3', 'sticky', 'top-0');
+                dWorkspace.classList.remove('w-full');
+                dWorkspace.classList.add('w-2/3');
+                icon.className = "fa-solid fa-mobile-screen-button text-xs";
+            } else {
+                // Beralih kembali ke model HP semula
+                container.classList.remove('max-w-6xl');
+                container.classList.add('max-w-md');
+                dInner.classList.remove('flex-row', 'items-start');
+                dInner.classList.add('flex-col');
+                dMenu.classList.remove('w-1/3', 'sticky', 'top-0');
+                dMenu.classList.add('w-full');
+                dWorkspace.classList.remove('w-2/3');
+                dWorkspace.classList.add('w-full');
+                icon.className = "fa-solid fa-desktop text-xs";
+            }
+            switchAdminTab(activeAdminTab);
         }
 
         function updateDynamicSchoolIdentity() {
@@ -816,7 +904,6 @@
 
         function getStudentRpgTitle(s) {
             const att = getStudentAttendanceStats(s.id);
-            // Formula XP: (Kebaikan × 12) + (Hadir × 4) - (Pelanggaran × 18)
             const xp = (s.points_good * 12) + (att.hadir * 4) - (s.points_bad * 18);
             
             let title = "Petualang Pemula 🎒";
@@ -1024,6 +1111,18 @@
                 badgeBox.innerHTML = `<i class="fa-solid fa-heart mr-1"></i> Poin kebaikan berikutnya akan otomatis digunakan melunasi sisa pelanggaran ini.`;
             }
 
+            // Memproses alert tagihan kas berkedip di siswa
+            const alertBox = document.getElementById('student-kas-alert');
+            const alertMsg = document.getElementById('student-kas-alert-msg');
+            const studentAlertAmount = kasAlerts[currentStudent.id];
+            
+            if (studentAlertAmount && Number(studentAlertAmount) > 0) {
+                alertBox.classList.remove('hidden');
+                alertMsg.innerText = `Kamu memiliki tagihan/tunggakan uang kas sebesar ${formatRupiah(studentAlertAmount)}. Yuk segera bayar ke bendahara kelas!`;
+            } else {
+                alertBox.classList.add('hidden');
+            }
+
             // Memproses wawasan / rekomendasi pelajaran untuk siswa
             const insights = getStudentSubjectInsights(currentStudent.id);
             const insightCard = document.getElementById('student-academic-insights-card');
@@ -1155,7 +1254,6 @@
                 return;
             }
 
-            // Grouping by Category (Mapel/Misi Karakter)
             const groupedMisi = {};
             allMisi.forEach(m => {
                 const cat = m.category || 'MISI_KARAKTER';
@@ -1224,7 +1322,6 @@
                 return;
             }
 
-            // Grouping by Category (Mapel)
             const groupedTugas = {};
             allTugas.forEach(t => {
                 const cat = t.category || 'LAINNYA';
@@ -1244,34 +1341,44 @@
                 groupedTugas[cat].forEach(t => {
                     const subm = taskSubmissions.find(s => s.task_id === t.id && s.student_id === currentStudent.id);
                     const status = subm ? subm.status : 'Belum Kumpul';
+                    const currentScore = subm && subm.score !== null ? subm.score : '';
 
                     if (status === 'Sudah Kumpul') completedTugasCount++;
 
                     let badgeColor = "bg-gray-100 text-gray-600 border border-gray-300";
-                    let actionButtonHtml = '';
+                    let inputScoreHtml = '';
 
                     if (status === "Sudah Kumpul") {
                         badgeColor = "bg-green-100 text-green-800 border border-green-300";
-                    } else if (status === "Menunggu Verifikasi") {
-                        badgeColor = "bg-yellow-100 text-yellow-800 border border-yellow-300 animate-pulse";
-                    } else if (status === "Remedial") {
-                        badgeColor = "bg-red-100 text-red-800 border border-red-300";
-                        actionButtonHtml = `<button onclick="laporTugasSelesai('${t.id}')" class="mt-2 w-full py-1.5 bg-yellow-400 text-amber-950 font-black rounded-lg text-[10px] btn-3d border-b-2 border-yellow-600">REMEDIAL SELESAI? LAPOR SEKARANG! 🚀</button>`;
+                        inputScoreHtml = `<span class="text-xs font-black text-green-700 bg-green-50 px-2 py-1.5 rounded-xl border border-green-200">Selesai (Nilai: ${currentScore})</span>`;
                     } else {
-                        actionButtonHtml = `<button onclick="laporTugasSelesai('${t.id}')" class="mt-2 w-full py-1.5 bg-blue-600 text-white font-black rounded-lg text-[10px] btn-3d border-b-2 border-blue-900">SAYA SUDAH SELESAI, LAPOR! 🚀</button>`;
+                        if (status === "Menunggu Verifikasi") {
+                            badgeColor = "bg-yellow-100 text-yellow-800 border border-yellow-300 animate-pulse";
+                        } else if (status === "Remedial") {
+                            badgeColor = "bg-red-100 text-red-800 border border-red-300";
+                        }
+                        inputScoreHtml = `
+                            <div class="mt-2.5 flex items-center gap-1.5 bg-white p-2 border border-blue-200 rounded-xl">
+                                <span class="text-[9px] font-black text-gray-400 uppercase">Input Nilaimu:</span>
+                                <input type="number" id="std-score-input-${t.id}" value="${currentScore}" placeholder="Cth: 85" class="w-14 p-1 text-center text-xs font-black border border-gray-300 rounded focus:outline-none focus:border-blue-500">
+                                <button onclick="laporTugasDenganNilaiSiswa('${t.id}')" class="bg-blue-600 hover:bg-blue-700 text-white font-black text-[9px] px-2.5 py-1.5 rounded-lg border-b-2 border-blue-800 uppercase">Kumpul</button>
+                            </div>
+                        `;
                     }
 
                     tugasContainer.innerHTML += `
                         <div class="p-3 bg-blue-50/50 border border-blue-100 rounded-2xl mb-2">
                             <div class="flex justify-between items-start gap-2">
-                                <div>
+                                <div class="flex-1">
                                     <h5 class="font-black text-xs text-gray-800">${t.title}</h5>
                                     <p class="text-[9px] text-gray-500 mt-0.5">${t.description}</p>
                                     <span class="text-[8px] text-gray-400 mt-1 inline-block">Batas: ${t.due_date}</span>
                                 </div>
                                 <span class="text-[9px] font-black px-2 py-1 rounded-xl uppercase shrink-0 ${badgeColor}">${status}</span>
                             </div>
-                            ${actionButtonHtml}
+                            <div class="mt-2 text-right">
+                                ${inputScoreHtml}
+                            </div>
                         </div>
                     `;
                 });
@@ -1284,7 +1391,7 @@
 
         async function laporTugasSelesai(taskId) {
             playSfx('click');
-            const conf = await showCustomConfirm("Lapor Tugas", "Konfirmasi bahwa Anda telah menyelesaikan misi/tugas ini?");
+            const conf = await showCustomConfirm("Lapor Misi", "Konfirmasi bahwa Anda telah menyelesaikan misi ini?");
             if (!conf) return;
 
             let subm = taskSubmissions.find(s => s.task_id === taskId && s.student_id === currentStudent.id);
@@ -1307,6 +1414,40 @@
             playSfx('success');
             await postToCloud("task_submissions", "upsert", subm);
             showPopup("Laporan Dikirim!", "Misi Anda sekarang menunggu verifikasi dari Pak Guru.", "fa-hourglass-start", "text-yellow-500", "bg-yellow-50");
+        }
+
+        async function laporTugasDenganNilaiSiswa(taskId) {
+            playSfx('click');
+            const scoreVal = document.getElementById(`std-score-input-${taskId}`).value;
+            if (!scoreVal || isNaN(scoreVal) || Number(scoreVal) < 0 || Number(scoreVal) > 100) {
+                showPopup("Skor Tidak Valid", "Masukkan skor nilai yang sah antara 0 hingga 100!", "fa-triangle-exclamation", "text-amber-500", "bg-amber-50");
+                return;
+            }
+
+            const conf = await showCustomConfirm("Kumpul Tugas", `Kirimkan usulan nilaimu sebesar ${scoreVal} untuk tugas ini?`);
+            if (!conf) return;
+
+            let subm = taskSubmissions.find(s => s.task_id === taskId && s.student_id === currentStudent.id);
+            if (!subm) {
+                subm = {
+                    id: 'S_' + taskId + '_' + currentStudent.id,
+                    task_id: taskId,
+                    student_id: currentStudent.id,
+                    status: 'Menunggu Verifikasi',
+                    score: Number(scoreVal)
+                };
+                taskSubmissions.push(subm);
+            } else {
+                subm.status = 'Menunggu Verifikasi';
+                subm.score = Number(scoreVal);
+            }
+
+            saveLocalBackup();
+            renderStudentDashboard();
+            updateClassAnalytics();
+            playSfx('success');
+            await postToCloud("task_submissions", "upsert", subm);
+            showPopup("Tugas Terkumpul!", "Usulan nilai Anda telah terkirim dan siap diverifikasi oleh Pak Guru.", "fa-check", "text-emerald-500", "bg-emerald-50");
         }
 
         async function ajukanRestitusiSiswa(restitusiId) {
@@ -1498,13 +1639,19 @@
             `;
             students.forEach(s => {
                 let photoHtml = s.photo ? `<img src="${s.photo}" class="w-8 h-8 rounded-full object-cover border-2 border-emerald-100">` : `<div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center border-2 border-emerald-100"><i class="fa-solid fa-user text-emerald-400 text-[10px]"></i></div>`;
+                
+                // Menampilkan perolehan seluruh Poin kebaikan dan pelanggaran di halaman guru
                 html += `
-                    <div class="p-2 bg-white rounded-xl flex justify-between items-center border-2 border-emerald-50">
+                    <div class="p-2.5 bg-white rounded-xl flex justify-between items-center border-2 border-emerald-50 shadow-sm">
                         <div class="flex items-center gap-2">
                             ${photoHtml}
                             <div>
                                 <h5 class="font-black text-xs text-gray-800">${s.name}</h5>
-                                <p class="text-[9px] text-gray-400 mt-0.5">${s.gender}</p>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="text-[8px] bg-slate-100 text-slate-600 px-1 rounded uppercase font-black">${s.gender}</span>
+                                    <span class="text-[9px] text-green-700 font-extrabold flex items-center gap-0.5"><i class="fa-solid fa-star"></i> ${s.points_good}</span>
+                                    <span class="text-[9px] text-amber-700 font-extrabold flex items-center gap-0.5"><i class="fa-solid fa-triangle-exclamation"></i> ${s.points_bad}</span>
+                                </div>
                             </div>
                         </div>
                         <div class="flex gap-1 shrink-0">
@@ -2024,7 +2171,6 @@
                 }
                 html += `</div>`;
             } else {
-                // RENDER CRUD PRESET RESTITUSI
                 html += `
                     <div class="bg-rose-50/50 p-3 rounded-2xl border-2 border-rose-100 mb-3 space-y-3 shadow-sm">
                         <h5 class="text-[10px] font-black text-rose-800 uppercase border-b border-rose-100 pb-1">Tambah / Edit Preset Restitusi</h5>
@@ -2408,6 +2554,10 @@
 
         function renderTabKas(container) {
             const totalKas = kasTransactions.reduce((acc, curr) => curr.type === 'in' ? acc + Number(curr.amount) : acc - Number(curr.amount), 0);
+            
+            // Generate opsi murid untuk select-box penagihan kas
+            let studentOptionsHtml = students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+
             let html = `
                 <div class="flex justify-between items-center mb-3">
                     <h4 class="font-black text-xs text-emerald-800 uppercase tracking-wider">Buku Kas Kelas</h4>
@@ -2421,9 +2571,47 @@
                     <i class="fa-solid fa-wallet text-2xl text-emerald-200"></i>
                 </div>
 
+                <!-- FORM PENAGIHAN KAS KELAS (INGATKAN SISWA) -->
+                <div class="bg-red-50/50 p-3 rounded-2xl border-2 border-red-200 space-y-3 mb-3">
+                    <h5 class="text-[10px] font-black text-red-800 uppercase border-b border-red-100 pb-1"><i class="fa-solid fa-bell"></i> Ingatkan Tunggakan Kas Kelas</h5>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[9px] text-gray-500 font-bold block mb-1">Pilih Siswa</label>
+                            <select id="kas-alert-student" class="w-full p-2 text-xs rounded-xl bg-white border-2 border-red-200 text-gray-850 font-black">
+                                <option value="">-- Pilih Siswa --</option>
+                                ${studentOptionsHtml}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-gray-500 font-bold block mb-1">Besar Tunggakan (Rp)</label>
+                            <input type="number" id="kas-alert-amount" placeholder="Cth: 15000" class="w-full p-2 text-xs rounded-xl bg-white border-2 border-red-200 text-gray-850 font-black">
+                        </div>
+                    </div>
+                    <button onclick="kirimPeringatanKas()" class="w-full bg-red-600 hover:bg-red-500 text-white font-black text-xs py-2 rounded-xl btn-3d border-b-4 border-red-800">Kirim Peringatan Berkedip Ke Portal Siswa</button>
+
+                    <!-- DAFTAR PENAGIHAN AKTIF -->
+                    <div class="pt-2 border-t border-red-100">
+                        <span class="text-[9px] font-black text-red-700 uppercase block mb-1.5">Penagihan Berkedip Aktif Saat Ini:</span>
+                        <div class="space-y-1.5 max-h-24 overflow-y-auto">
+                            ${Object.keys(kasAlerts).map(sId => {
+                                const std = students.find(s => s.id.toString() === sId.toString());
+                                if (!std) return '';
+                                return `
+                                    <div class="p-1.5 bg-white border border-red-200 rounded flex justify-between items-center text-[10px]">
+                                        <span class="font-bold text-gray-800">${std.name} (${formatRupiah(kasAlerts[sId])})</span>
+                                        <button onclick="hapusPeringatanKas('${sId}')" class="text-red-500 hover:text-red-700"><i class="fa-solid fa-circle-xmark"></i> Hapus</button>
+                                    </div>
+                                `;
+                            }).join('')}
+                            ${Object.keys(kasAlerts).length === 0 ? '<span class="text-[9px] text-gray-400 italic">Belum ada penagihan berkedip yang aktif.</span>' : ''}
+                        </div>
+                    </div>
+                </div>
+
                 <!-- FORM INPUT TRANSAKSI KAS -->
                 <div class="bg-white p-3 rounded-2xl border-2 border-emerald-100 space-y-3">
-                    <h5 class="text-[10px] font-black text-emerald-800 uppercase border-b border-emerald-100 pb-1">Transaksi Baru</h5>
+                    <h5 class="text-[10px] font-black text-emerald-800 uppercase border-b border-emerald-100 pb-1">Transaksi Kas Umum</h5>
                     <input type="hidden" id="kas-id">
                     
                     <div class="grid grid-cols-2 gap-2">
@@ -2477,6 +2665,39 @@
                 </div>
             `;
             container.innerHTML = html;
+        }
+
+        async function kirimPeringatanKas() {
+            playSfx('click');
+            const studentId = document.getElementById('kas-alert-student').value;
+            const amount = document.getElementById('kas-alert-amount').value;
+
+            if (!studentId || !amount || Number(amount) <= 0) {
+                showPopup("Data Kosong", "Mohon pilih nama siswa dan tentukan besar nominal tunggakan kas!", "fa-circle-xmark", "text-red-500", "bg-red-50");
+                return;
+            }
+
+            kasAlerts[studentId] = Number(amount);
+            saveLocalBackup();
+            switchAdminTab('kas');
+            playSfx('success');
+
+            await postToCloud("kas_alerts", "upsert", {
+                student_id: studentId,
+                amount: Number(amount)
+            });
+            showPopup("Peringatan Dikirim!", "Notifikasi tagihan kas berkedip kini aktif di halaman portal siswa tersebut.", "fa-bell", "text-emerald-500", "bg-emerald-50");
+        }
+
+        async function hapusPeringatanKas(studentId) {
+            playSfx('click');
+            delete kasAlerts[studentId];
+            saveLocalBackup();
+            switchAdminTab('kas');
+            playSfx('fail');
+
+            await postToCloud("kas_alerts", "delete", null, studentId);
+            showPopup("Penagihan Dihapus", "Notifikasi berkedip pada portal siswa tersebut telah dinonaktifkan.", "fa-circle-check", "text-blue-500", "bg-blue-50");
         }
 
         async function simpanKasAdmin() {
@@ -2546,7 +2767,6 @@
         }
 
         function renderTabTugas(container) {
-            // Sort tasks: uncompleted first, fully completed tasks go to the very bottom
             const sortedTasks = [...tasks].sort((a, b) => {
                 const compA = isTaskFullyCompleted(a.id);
                 const compB = isTaskFullyCompleted(b.id);
@@ -2555,7 +2775,6 @@
                 return new Date(b.created_at || 0) - new Date(a.created_at || 0);
             });
 
-            // Group tasks by category/subject
             const groupedTasks = {};
             sortedTasks.forEach(t => {
                 const cat = t.category || 'LAINNYA';
@@ -2637,7 +2856,6 @@
                         });
                         const averageScoreVal = gradedCount > 0 ? Math.round((totalScoreVal / gradedCount) * 10) / 10 : 0;
 
-                        // Sort students: Unfilled (Belum Kumpul/Menunggu Verifikasi/Remedial) first, Sudah Kumpul last
                         const sortedStudents = [...students].sort((a, b) => {
                             const subA = taskSubms.find(sub => sub.student_id === a.id);
                             const subB = taskSubms.find(sub => sub.student_id === b.id);
@@ -2700,11 +2918,12 @@
 
                                                 const scoreStyle = (currentScore !== '' && Number(currentScore) < 70) ? "border-red-500 text-red-600 bg-red-50 font-black" : "border-gray-300 text-gray-800 bg-white font-bold";
 
+                                                // Kita menggunakan event blur (saat kursor pindah kolom) sehingga kolom tidak langsung ter-refresh saat mengetik nilai
                                                 return `
                                                     <div class="flex justify-between items-center py-1 text-xs gap-1">
                                                         <span class="font-medium text-gray-700 truncate flex-1">${s.name}</span>
                                                         <div class="flex items-center gap-1 shrink-0">
-                                                            <input type="number" value="${currentScore}" placeholder="Nilai" onchange="updateSubmissionScore('${t.id}', '${s.id}', this.value)" class="w-12 p-1 text-[10px] rounded border text-center ${scoreStyle}">
+                                                            <input type="number" value="${currentScore}" placeholder="Nilai" onblur="updateSubmissionScore('${t.id}', '${s.id}', this.value)" class="w-12 p-1 text-[10px] rounded border text-center ${scoreStyle}">
                                                             <select onchange="updateSubmissionStatus('${t.id}', '${s.id}', this.value)" class="p-1 text-[10px] rounded border ${selectColor}">
                                                                 <option value="Belum Kumpul" ${currentStatus === 'Belum Kumpul' ? 'selected' : ''}>🔴 Belum</option>
                                                                 <option value="Menunggu Verifikasi" ${currentStatus === 'Menunggu Verifikasi' ? 'selected' : ''}>🟡 Verifikasi</option>
@@ -2915,8 +3134,7 @@
             saveLocalBackup();
             updateClassAnalytics();
             
-            // Render ulang tab tugas supaya dropdown status mencerminkan status terbaru
-            renderTabTugas(document.getElementById('admin-panel-content'));
+            // Render ulang parsial data rekap, agar tidak mengaburkan input focus kolom nilai berikutnya
             await postToCloud("task_submissions", "upsert", subm);
         }
 
@@ -3248,7 +3466,6 @@
         }
 
         function cetakRekapBulananLandscape() {
-            // Hitung persentase kolektif total
             let sumH = 0, sumS = 0, sumI = 0, sumA = 0, sumTotalMarked = 0;
             students.forEach(s => {
                 attendanceData.forEach(day => {
@@ -3323,7 +3540,6 @@
                                 }).join('')}
                                 ${students.length === 0 ? '<tr><td colspan="8">Belum ada siswa terdaftar</td></tr>' : ''}
                                 
-                                <!-- BARIS PERHITUNGAN PERSENTASE KOLEKTIF TOTAL DI BAGIAN BAWAH TABEL -->
                                 <tr style="background-color: #f9f9f9; font-weight: bold; border-top: 2px solid #000;">
                                     <td colspan="3">PERSENTASE KOLEKTIF TOTAL KELAS</td>
                                     <td>${sumH} (${classH_pct}%)</td>
