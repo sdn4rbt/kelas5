@@ -21,7 +21,7 @@
                     },
                     colors: {
                         kebaikan: {
-                            light: '#38BDF8', /* Ocean Blue adaptation */
+                            light: '#38BDF8',
                             DEFAULT: '#0EA5E9',
                             dark: '#0369A1',
                         },
@@ -190,7 +190,7 @@
             </div>
             
             <div class="text-center mt-6 text-[10px] text-gray-400 font-black tracking-widest uppercase">
-                Aplikasi Versi <span id="pub-app-version">v2.6.0-Ocean</span>
+                Aplikasi Versi <span id="pub-app-version">v2.6.1-Ocean</span>
             </div>
         </div>
 
@@ -226,7 +226,7 @@
                     <i class="fa-solid fa-shield-halved block text-sm mb-0.5"></i> Karakter & Absen
                 </button>
                 <button onclick="changeStudentSubTab('misi')" id="btn-subtab-misi" class="flex-1 text-center py-2 px-1 text-[11px] font-black rounded-xl text-gray-400 hover:bg-gray-100 transition whitespace-nowrap">
-                    <i class="fa-solid fa-sword block text-sm mb-0.5 text-orange-400"></i> Misi Karakter
+                    <i class="fa-solid fa-bullseye block text-sm mb-0.5 text-orange-400"></i> Misi Karakter
                 </button>
                 <button onclick="changeStudentSubTab('tugas')" id="btn-subtab-tugas" class="flex-1 text-center py-2 px-1 text-[11px] font-black rounded-xl text-gray-400 hover:bg-gray-100 transition whitespace-nowrap">
                     <i class="fa-solid fa-book-open block text-sm mb-0.5 text-blue-500"></i> Tugas Kelas
@@ -607,8 +607,9 @@
         let goodPresets = []; 
         let tasks = [];
         let taskSubmissions = [];
-        let studentMessages = []; // Fitur Pesan dari Guru
+        let studentMessages = []; 
         let kasAlerts = {}; 
+        let expandedTasks = []; // [V2.7.0] State untuk Collapse Mode Persistent
         
         // Konfigurasi default
         let appSettings = {
@@ -618,7 +619,7 @@
             guru_nip: "19940812 202012 2 012",
             kepsek_name: "H. Mulyadi, M.Pd.",
             kepsek_nip: "19720503 199603 1 003",
-            app_version: "v2.6.0-Ocean"
+            app_version: "v2.7.0-Ocean"
         };
 
         let currentStudent = null;
@@ -627,7 +628,7 @@
         let expandedTaskId = null; 
         let activeRestitusiSubTab = 'pending';
         let activeTaskTabFilter = 'Semua'; 
-        let activeTaskCategoryFilter = 'Semua'; // Fitur Filter Kategori Tugas
+        let activeTaskCategoryFilter = 'Semua'; 
         let isDesktopMode = false; 
 
         // Custom modal Promise resolvers
@@ -654,6 +655,7 @@
             if (localStorage.getItem('br_settings')) appSettings = JSON.parse(localStorage.getItem('br_settings'));
             if (localStorage.getItem('br_kas_alerts')) kasAlerts = JSON.parse(localStorage.getItem('br_kas_alerts'));
             if (localStorage.getItem('br_student_messages')) studentMessages = JSON.parse(localStorage.getItem('br_student_messages'));
+            if (localStorage.getItem('br_expanded_tasks')) expandedTasks = JSON.parse(localStorage.getItem('br_expanded_tasks'));
         }
 
         function saveLocalBackup() {
@@ -670,6 +672,7 @@
             localStorage.setItem('br_settings', JSON.stringify(appSettings));
             localStorage.setItem('br_kas_alerts', JSON.stringify(kasAlerts));
             localStorage.setItem('br_student_messages', JSON.stringify(studentMessages));
+            localStorage.setItem('br_expanded_tasks', JSON.stringify(expandedTasks));
         }
 
         async function syncFromCloud() {
@@ -770,7 +773,7 @@
             document.getElementById('pub-app-title').innerText = appSettings.school_name || "Bintang Kelas";
             document.getElementById('pub-class-badge').innerText = `Karakter Hebat ${appSettings.class_name || 'Kelas 5'}`;
             document.getElementById('pub-school-name').innerText = appSettings.school_name || "SDN 4 Rambutan";
-            document.getElementById('pub-app-version').innerText = appSettings.app_version || "v2.6.0-Ocean";
+            document.getElementById('pub-app-version').innerText = appSettings.app_version || "v2.6.1-Ocean";
 
             document.getElementById('adm-display-teacher').innerText = `Ruang Kerja ${appSettings.guru_name || 'Pak Guru'}`;
             document.getElementById('adm-display-school').innerText = `${appSettings.school_name || 'SDN 4 Rambutan'} - ${appSettings.class_name || 'KELAS 5'}`;
@@ -2792,7 +2795,8 @@
                     const completionRate = totalAssigned > 0 ? Math.round((completed / totalAssigned) * 100) : 0;
                     
                     const isAllFinished = isTaskFullyCompleted(t.id);
-                    const isExpanded = expandedTaskId === t.id;
+                    const isExpanded = expandedTasks.includes(t.id);
+                    const isLocked = t.isLocked || false;
 
                     let totalScoreVal = 0;
                     let gradedCount = 0;
@@ -2818,13 +2822,26 @@
 
                     const borderGradient = t.type === 'Misi' ? 'border-amber-100 hover:border-amber-300' : 'border-blue-100 hover:border-blue-300';
                     const iconHeader = t.type === 'Misi' ? 'fa-shield-halved text-amber-500' : 'fa-graduation-cap text-blue-500';
+                    
+                    // Style dinamis untuk tombol lock
+                    let lockBtnClass = "text-gray-300 bg-gray-50 cursor-not-allowed";
+                    let lockBtnTitle = "Kunci Nilai (Aktif jika Semua Tuntas)";
+                    if (isAllFinished) {
+                        if (isLocked) {
+                            lockBtnClass = "text-red-600 bg-red-100 hover:bg-red-200 shadow-inner";
+                            lockBtnTitle = "Buka Kunci Nilai";
+                        } else {
+                            lockBtnClass = "text-emerald-600 bg-emerald-100 hover:bg-emerald-200";
+                            lockBtnTitle = "Kunci Nilai Permanen";
+                        }
+                    }
 
                     html += `
-                        <div class="p-4 bg-white border-2 ${borderGradient} rounded-3xl shadow-sm hover:shadow-md transition-all duration-200">
-                            
+                        <div class="p-4 bg-white border-2 ${borderGradient} rounded-3xl shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden">
+                            ${isLocked ? '<div class="absolute inset-0 border-4 border-red-500/20 rounded-3xl pointer-events-none z-10"></div>' : ''}
                             <!-- HEADER KARTU TUGAS -->
                             <div class="flex justify-between items-start gap-3 pb-3 border-b border-gray-100 cursor-pointer" onclick="toggleTaskGrading('${t.id}')">
-                                <div class="flex items-start gap-2.5">
+                                <div class="flex items-start gap-2.5 min-w-0">
                                     <div class="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-sm shrink-0">
                                         <i class="fa-solid ${iconHeader}"></i>
                                     </div>
@@ -2832,36 +2849,42 @@
                                         <div class="flex gap-1.5 items-center mb-1 flex-wrap">
                                             <span class="text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${t.type === 'Misi' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}">${t.type}</span>
                                             <span class="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">${t.category}</span>
-                                            ${isAllFinished ? '<span class="text-[8px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-black uppercase">TUNTAS</span>' : ''}
+                                            ${isAllFinished ? '<span class="text-[8px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-black uppercase"><i class="fa-solid fa-check"></i> TUNTAS</span>' : ''}
+                                            ${isLocked ? '<span class="text-[8px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-black uppercase"><i class="fa-solid fa-lock"></i> TERKUNCI</span>' : ''}
                                         </div>
                                         <h5 class="font-black text-xs text-slate-800 truncate" title="${t.title}">${t.title}</h5>
                                         <p class="text-[9px] text-gray-500 font-bold mt-0.5"><i class="fa-regular fa-clock mr-0.5"></i> Target: ${t.due_date}</p>
                                     </div>
                                 </div>
                                 <div class="flex gap-1 items-center shrink-0">
+                                    <!-- Tombol Lock Grade Baru -->
+                                    <button onclick="event.stopPropagation(); ${isAllFinished ? `toggleTaskLock('${t.id}')` : ''}" title="${lockBtnTitle}" class="p-2 rounded-xl transition flex items-center justify-center ${lockBtnClass}">
+                                        <i class="fa-solid ${isLocked ? 'fa-lock' : 'fa-lock-open'} text-[10px]"></i>
+                                    </button>
                                     <button onclick="event.stopPropagation(); bukaFormEditTugas('${t.id}')" class="text-blue-500 hover:bg-blue-50 p-2 rounded-xl transition"><i class="fa-solid fa-pen text-xs"></i></button>
                                     <button onclick="event.stopPropagation(); hapusTugas('${t.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded-xl transition"><i class="fa-solid fa-trash text-xs"></i></button>
-                                    <span class="w-6 h-6 flex items-center justify-center text-slate-400 bg-slate-50 rounded-lg ml-1"><i class="fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'} text-[10px]"></i></span>
+                                    <span class="w-6 h-6 flex items-center justify-center text-slate-400 bg-slate-50 rounded-lg ml-1 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}"><i class="fa-solid fa-chevron-down text-[10px]"></i></span>
                                 </div>
                             </div>
 
-                            <!-- PROGRES BAR -->
-                            <div class="mt-3">
-                                <div class="flex justify-between text-[9px] font-black text-gray-500 uppercase mb-1">
-                                    <span>Kemajuan Belajar: ${completionRate}%</span>
-                                    <span>${completed}/${totalAssigned} Siswa Kumpul</span>
+                            <!-- WRAPPER COLLAPSE MODE ANIMATION -->
+                            <div class="transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[3000px] opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'}">
+                                <!-- PROGRES BAR -->
+                                <div>
+                                    <div class="flex justify-between text-[9px] font-black text-gray-500 uppercase mb-1">
+                                        <span>Kemajuan Belajar: ${completionRate}%</span>
+                                        <span>${completed}/${totalAssigned} Siswa Kumpul</span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                        <div class="h-full transition-all duration-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] ${t.type === 'Misi' ? 'bg-gradient-to-r from-amber-400 to-yellow-500' : 'bg-gradient-to-r from-blue-500 to-indigo-600'}" style="width: ${completionRate}%"></div>
+                                    </div>
                                 </div>
-                                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                                    <div class="h-full transition-all duration-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] ${t.type === 'Misi' ? 'bg-gradient-to-r from-amber-400 to-yellow-500' : 'bg-gradient-to-r from-blue-500 to-indigo-600'}" style="width: ${completionRate}%"></div>
-                                </div>
-                            </div>
 
-                            <!-- LEMBAR PENILAIAN INDIVIDUAL (CONDITIONAL EXPAND) -->
-                            ${isExpanded ? `
-                                <div class="mt-4 space-y-3 bg-slate-50 p-3 rounded-2xl border border-slate-150 card-pop">
+                                <!-- LEMBAR PENILAIAN INDIVIDUAL -->
+                                <div class="mt-4 space-y-3 bg-slate-50 p-3 rounded-2xl border border-slate-150">
                                     <div class="flex justify-between items-center pb-2 border-b border-gray-200">
                                         <span class="text-[9px] font-black text-slate-500 uppercase flex items-center gap-1.5"><i class="fa-solid fa-clipboard-check text-blue-600"></i> Nilai & Verifikasi Siswa:</span>
-                                        <button onclick="markAllTaskSubmissionsAsDone('${t.id}')" class="bg-sky-600 hover:bg-sky-500 text-white font-black text-[9px] px-2.5 py-1 rounded-lg border-b-2 border-sky-800 transition active:scale-95 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Semua Lulus</button>
+                                        ${!isLocked ? `<button onclick="markAllTaskSubmissionsAsDone('${t.id}')" class="bg-sky-600 hover:bg-sky-500 text-white font-black text-[9px] px-2.5 py-1 rounded-lg border-b-2 border-sky-800 transition active:scale-95 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Semua Lulus</button>` : `<span class="text-[9px] font-black text-red-600 bg-red-100 px-2 py-1 rounded-lg border border-red-200"><i class="fa-solid fa-lock"></i> NILAI DIKUNCI</span>`}
                                     </div>
 
                                     <div class="space-y-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
@@ -2877,12 +2900,17 @@
 
                                             const scoreStyle = (currentScore !== '' && Number(currentScore) < 70) ? "border-red-400 text-red-600 bg-red-50 font-black" : "border-gray-200 text-gray-800 bg-white font-bold";
 
+                                            // Penyesuaian Style saat isLocked = true
+                                            const disabledAttr = isLocked ? 'disabled' : '';
+                                            const finalScoreClass = isLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200 shadow-none' : scoreStyle;
+                                            const finalSelectClass = isLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200' : selectColor;
+
                                             return `
                                                 <div class="flex justify-between items-center py-2 text-xs gap-2">
-                                                    <span class="font-bold text-slate-700 truncate flex-1">${s.name}</span>
+                                                    <span class="font-bold text-slate-700 truncate flex-1 ${isLocked ? 'opacity-60' : ''}">${s.name}</span>
                                                     <div class="flex items-center gap-1.5 shrink-0">
-                                                        <input type="number" value="${currentScore}" placeholder="Nilai" onblur="updateSubmissionScore('${t.id}', '${s.id}', this.value)" class="w-14 p-1.5 text-center text-xs rounded-lg border ${scoreStyle} focus:outline-none focus:border-blue-500">
-                                                        <select onchange="updateSubmissionStatus('${t.id}', '${s.id}', this.value)" class="p-1.5 text-[10px] rounded-lg border font-bold focus:outline-none ${selectColor}">
+                                                        <input type="number" value="${currentScore}" placeholder="Nilai" onblur="updateSubmissionScore('${t.id}', '${s.id}', this.value)" class="w-14 p-1.5 text-center text-xs rounded-lg border ${finalScoreClass} focus:outline-none focus:border-blue-500 transition-colors" ${disabledAttr}>
+                                                        <select onchange="updateSubmissionStatus('${t.id}', '${s.id}', this.value)" class="p-1.5 text-[10px] rounded-lg border font-bold focus:outline-none ${finalSelectClass} transition-colors" ${disabledAttr}>
                                                             <option value="Belum Kumpul" ${currentStatus === 'Belum Kumpul' ? 'selected' : ''}>🔴 Belum</option>
                                                             <option value="Menunggu Verifikasi" ${currentStatus === 'Menunggu Verifikasi' ? 'selected' : ''}>🟡 Verif</option>
                                                             <option value="Sudah Kumpul" ${currentStatus === 'Sudah Kumpul' ? 'selected' : ''}>🟢 Selesai</option>
@@ -2894,12 +2922,12 @@
                                         }).join('')}
                                     </div>
                                 </div>
-                            ` : ''}
 
-                            <!-- STATISTIK AKUMULATIF TUGAS -->
-                            <div class="mt-3 pt-3 border-t border-dashed border-gray-150 flex justify-between items-center text-[10px] font-black uppercase text-gray-500">
-                                <span>Akumulasi Nilai: <span class="text-blue-600 font-extrabold">${totalScoreVal}</span></span>
-                                <span>Rata-Rata Kelas: <span class="px-2 py-0.5 rounded-md ${averageScoreVal < 70 ? 'bg-red-100 text-red-700' : 'bg-sky-100 text-sky-700'}">${averageScoreVal}</span></span>
+                                <!-- STATISTIK AKUMULATIF TUGAS -->
+                                <div class="mt-3 pt-3 border-t border-dashed border-gray-150 flex justify-between items-center text-[10px] font-black uppercase text-gray-500">
+                                    <span>Akumulasi Nilai: <span class="text-blue-600 font-extrabold">${totalScoreVal}</span></span>
+                                    <span>Rata-Rata Kelas: <span class="px-2 py-0.5 rounded-md ${averageScoreVal < 70 ? 'bg-red-100 text-red-700' : 'bg-sky-100 text-sky-700'}">${averageScoreVal}</span></span>
+                                </div>
                             </div>
                         </div>
                     `;
@@ -2937,11 +2965,44 @@
         }
 
         function toggleTaskGrading(taskId) {
-            expandedTaskId = (expandedTaskId === taskId) ? null : taskId;
+            playSfx('click');
+            if (expandedTasks.includes(taskId)) {
+                expandedTasks = expandedTasks.filter(id => id !== taskId);
+            } else {
+                expandedTasks.push(taskId);
+            }
+            saveLocalBackup();
             renderTabTugas(document.getElementById('admin-panel-content'));
         }
 
+        async function toggleTaskLock(taskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            const isLocking = !task.isLocked;
+            const actionText = isLocking ? "MENGUNCI" : "MEMBUKA KUNCI";
+            const warningText = isLocking ? "Setelah dikunci, nilai tidak bisa diubah oleh siapapun sampai gembok dibuka kembali." : "Guru dapat kembali mengubah nilai siswa.";
+
+            const conf = await showCustomConfirm(`${actionText} NILAI TUGAS`, `Apakah Anda yakin ingin ${actionText.toLowerCase()} tugas "${task.title}"? ${warningText}`);
+            if (!conf) return;
+
+            playSfx('click');
+            task.isLocked = isLocking;
+            saveLocalBackup();
+            renderTabTugas(document.getElementById('admin-panel-content'));
+            playSfx('success');
+            
+            await postToCloud("tasks", "upsert", task);
+            showPopup(`Nilai ${isLocking ? 'Terkunci' : 'Terbuka'}`, `Berhasil ${isLocking ? 'mengunci' : 'membuka kunci'} tugas akademik.`, isLocking ? "fa-lock" : "fa-lock-open", isLocking ? "text-red-500" : "text-emerald-500", isLocking ? "bg-red-50" : "bg-emerald-50");
+        }
+
         async function markAllTaskSubmissionsAsDone(taskId) {
+            const task = tasks.find(x => x.id === taskId);
+            if (task && task.isLocked) {
+                showPopup("Terkunci", "Nilai tugas ini telah dikunci dan tidak dapat diubah secara masal.", "fa-lock", "text-red-500", "bg-red-50");
+                return;
+            }
+
             const conf = await showCustomConfirm("Tandai Semua Selesai", "Yakin ingin menandai seluruh siswa selesai mengumpulkan tugas ini dengan nilai 80?");
             if (!conf) return;
 
@@ -3019,6 +3080,10 @@
                 showPopup("Data Kosong", "Judul & Rincian tugas wajib diisi!", "fa-circle-xmark", "text-red-500", "bg-red-50");
                 return;
             }
+            
+            // Pertahankan nilai isLocked jika ini adalah operasi Edit
+            const existingTask = tasks.find(x => x.id === id);
+            const preservedLockState = existingTask ? (existingTask.isLocked || false) : false;
 
             const newTugas = {
                 id: id ? id : 'T_' + Date.now(),
@@ -3026,43 +3091,40 @@
                 description: desc,
                 due_date: date,
                 type,
-                category
+                category,
+                isLocked: preservedLockState
             };
 
             const index = tasks.findIndex(x => x.id === newTugas.id);
-            if (index >= 0) {
+            const isNewTask = index < 0;
+
+            if (!isNewTask) {
                 tasks[index] = newTugas;
             } else {
                 tasks.push(newTugas);
-                
-                students.forEach(s => {
-                    const submissionId = 'S_' + newTugas.id + '_' + s.id;
-                    const exists = taskSubmissions.some(x => x.id === submissionId);
-                    if (!exists) {
-                        taskSubmissions.push({
-                            id: submissionId,
-                            task_id: newTugas.id,
-                            student_id: s.id,
-                            status: 'Belum Kumpul',
-                            score: null
-                        });
-                    }
-                });
             }
 
             saveLocalBackup();
             playSfx('success');
             await postToCloud("tasks", "upsert", newTugas);
             
+            // HANYA buat submission baru jika belum ada. JANGAN overwrite data yang sudah dinilai! (Idempotent approach)
             for (let i = 0; i < students.length; i++) {
                 const s = students[i];
-                await postToCloud("task_submissions", "upsert", {
-                    id: 'S_' + newTugas.id + '_' + s.id,
-                    task_id: newTugas.id,
-                    student_id: s.id,
-                    status: 'Belum Kumpul',
-                    score: null
-                });
+                const submissionId = 'S_' + newTugas.id + '_' + s.id;
+                const existingSubm = taskSubmissions.find(x => x.id === submissionId);
+                
+                if (!existingSubm) {
+                    const newSubm = {
+                        id: submissionId,
+                        task_id: newTugas.id,
+                        student_id: s.id,
+                        status: 'Belum Kumpul',
+                        score: null
+                    };
+                    taskSubmissions.push(newSubm);
+                    await postToCloud("task_submissions", "upsert", newSubm);
+                }
             }
             updateClassAnalytics();
             
@@ -3102,6 +3164,12 @@
         }
 
         async function updateSubmissionStatus(taskId, studentId, newStatus) {
+            const task = tasks.find(x => x.id === taskId);
+            if (task && task.isLocked) {
+                showPopup("Terkunci", "Nilai tugas ini telah dikunci dan tidak dapat diubah.", "fa-lock", "text-red-500", "bg-red-50");
+                return;
+            }
+            
             playSfx('click');
             let subm = taskSubmissions.find(s => s.task_id === taskId && s.student_id === studentId);
             
@@ -3124,6 +3192,14 @@
         }
 
         async function updateSubmissionScore(taskId, studentId, newScore) {
+            const task = tasks.find(x => x.id === taskId);
+            if (task && task.isLocked) {
+                showPopup("Terkunci", "Nilai tugas ini telah dikunci dan tidak dapat diubah.", "fa-lock", "text-red-500", "bg-red-50");
+                // Reset input UI ke nilai asli (atau biarkan re-render memperbaikinya)
+                renderTabTugas(document.getElementById('admin-panel-content'));
+                return;
+            }
+            
             playSfx('click');
             let subm = taskSubmissions.find(s => s.task_id === taskId && s.student_id === studentId);
             const scoreVal = newScore !== "" ? Number(newScore) : null;
@@ -3381,16 +3457,17 @@
                         .page { padding: 40px; box-sizing: border-box; width: 100%; min-height: 100vh; }
                         .page-break { page-break-after: always; }
                         .page-break:last-child { page-break-after: auto; }
-                        .header { text-align: center; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 20px; }
+                        .header { text-align: center; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 15px; }
                         .title { font-size: 20px; font-weight: bold; margin: 0; }
                         .subtitle { font-size: 14px; margin: 5px 0 0 0; }
-                        .meta { margin-bottom: 20px; width: 100%; border-collapse: collapse; }
+                        .meta { margin-bottom: 15px; width: 100%; border-collapse: collapse; }
                         .meta td { padding: 4px 0; font-size: 13px; }
-                        .score-box { border: 1px solid #000; padding: 15px; text-align: center; margin-bottom: 20px; }
-                        .table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        .table th, .table td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 12px; }
+                        .score-box { border: 1px solid #000; padding: 12px; text-align: center; margin-bottom: 15px; }
+                        .section-title { font-size: 13px; font-weight: bold; margin-top: 20px; border-bottom: 1px solid #000; padding-bottom: 3px; text-transform: uppercase; }
+                        .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                        .table th, .table td { border: 1px solid #000; padding: 6px; text-align: left; font-size: 12px; }
                         .table th { background-color: #f2f2f2; }
-                        .footer { margin-top: 50px; display: flex; justify-content: space-between; }
+                        .footer { margin-top: 40px; display: flex; justify-content: space-between; }
                         .sig { text-align: center; width: 250px; font-size: 12px; }
                         @media print { body { padding: 0; } }
                     </style>
@@ -3402,43 +3479,106 @@
                 const myLogs = logs.filter(l => l.student_id === s.id);
                 const balance = s.points_good - s.points_bad;
                 const predikat = balance >= 50 ? "AMAT BAIK" : (balance >= 0 ? "CUKUP BAIK" : "BUTUH PEMBINAAN KHUSUS");
+                
+                const myTugas = tasks.filter(t => t.type === 'Tugas');
+                const myMisi = tasks.filter(t => t.type === 'Misi');
+
+                let htmlTugas = '';
+                if (myTugas.length === 0) {
+                    htmlTugas = `<tr><td colspan="4" style="text-align:center;">Belum ada penugasan akademik</td></tr>`;
+                } else {
+                    htmlTugas = myTugas.map(t => {
+                        const sub = taskSubmissions.find(x => x.task_id === t.id && x.student_id === s.id);
+                        const score = (sub && sub.score !== null && sub.score !== undefined) ? sub.score : '-';
+                        const status = sub ? sub.status : 'Belum Kumpul';
+                        return `<tr><td width="20%">${t.category}</td><td width="45%">${t.title}</td><td width="20%">${status}</td><td width="15%" style="text-align:center; font-weight:bold;">${score}</td></tr>`;
+                    }).join('');
+                }
+
+                let htmlMisi = '';
+                if (myMisi.length === 0) {
+                    htmlMisi = `<tr><td colspan="4" style="text-align:center;">Belum ada misi karakter</td></tr>`;
+                } else {
+                    htmlMisi = myMisi.map(m => {
+                        const sub = taskSubmissions.find(x => x.task_id === m.id && x.student_id === s.id);
+                        const score = (sub && sub.score !== null && sub.score !== undefined) ? sub.score : '-';
+                        const status = sub ? sub.status : 'Belum Kumpul';
+                        return `<tr><td width="20%">${m.category}</td><td width="45%">${m.title}</td><td width="20%">${status}</td><td width="15%" style="text-align:center; font-weight:bold;">${score}</td></tr>`;
+                    }).join('');
+                }
+
+                let htmlLogs = '';
+                if (myLogs.length === 0) {
+                    htmlLogs = `<tr><td colspan="4" style="text-align:center;">Belum ada riwayat karakter</td></tr>`;
+                } else {
+                    htmlLogs = myLogs.map(l => `
+                        <tr>
+                            <td width="15%">${l.timestamp}</td>
+                            <td width="15%">${l.type}</td>
+                            <td width="55%">${l.description}</td>
+                            <td width="15%" style="text-align:center;">${l.type === 'Kebaikan' ? '+' : '-'}${l.points} Poin</td>
+                        </tr>
+                    `).join('');
+                }
 
                 htmlContent += `
                     <div class="page page-break">
                         <div class="header">
-                            <div class="title">RAPOR PERKEMBANGAN KARAKTER SISWA</div>
+                            <div class="title">RAPOR KEMAJUAN BELAJAR & KARAKTER</div>
                             <div class="subtitle">${(appSettings.school_name || "SD NEGERI 4 RAMBUTAN").toUpperCase()} - ${(appSettings.class_name || "KELAS 5").toUpperCase()}</div>
                         </div>
+                        
                         <table class="meta">
                             <tr><td width="25%"><b>Nama Siswa</b></td><td width="3%">:</td><td width="72%">${s.name}</td></tr>
                             <tr><td><b>Jenis Kelamin</b></td><td>:</td><td>${s.gender === 'Putra' ? 'Laki-Laki' : 'Perempuan'}</td></tr>
                             <tr><td><b>Tanggal Cetak</b></td><td>:</td><td>${new Date().toLocaleDateString('id-ID')}</td></tr>
                         </table>
+                        
                         <div class="score-box">
                             <div style="font-size: 13px; margin-bottom: 5px;">AKUMULASI PENILAIAN KARAKTER</div>
                             <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">Kebaikan: ${s.points_good} Pts | Pelanggaran: ${s.points_bad} Pts</div>
                             <div style="font-size: 14px; letter-spacing: 1px;">PREDIKAT KARAKTER AKHIR: <b>${predikat}</b></div>
                         </div>
+
+                        <div class="section-title">A. PENILAIAN AKADEMIK (KOGNITIF)</div>
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th width="15%">Tanggal</th>
-                                    <th width="15%">Jenis Poin</th>
-                                    <th width="50%">Deskripsi Aktivitas</th>
-                                    <th width="20%">Skor Perubahan</th>
+                                    <th>Mata Pelajaran</th>
+                                    <th>Judul Tugas / Ulangan</th>
+                                    <th>Status Penyelesaian</th>
+                                    <th style="text-align:center;">Nilai Angka</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                ${myLogs.map(l => `
-                                    <tr>
-                                        <td>${l.timestamp}</td>
-                                        <td>${l.type}</td>
-                                        <td>${l.description}</td>
-                                        <td>${l.type === 'Kebaikan' ? '+' : '-'}${l.points} Poin</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
+                            <tbody>${htmlTugas}</tbody>
                         </table>
+
+                        <div class="section-title">B. PENYELESAIAN MISI KARAKTER (AFEKTIF/PSIKOMOTORIK)</div>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Kategori Misi</th>
+                                    <th>Tantangan / Proyek</th>
+                                    <th>Status Penyelesaian</th>
+                                    <th style="text-align:center;">Skor Capaian</th>
+                                </tr>
+                            </thead>
+                            <tbody>${htmlMisi}</tbody>
+                        </table>
+                        
+                        <div class="section-title">C. RIWAYAT CATATAN HARIAN KARAKTER</div>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Waktu</th>
+                                    <th>Jenis Poin</th>
+                                    <th>Deskripsi Tindakan</th>
+                                    <th style="text-align:center;">Perubahan Poin</th>
+                                </tr>
+                            </thead>
+                            <tbody>${htmlLogs}</tbody>
+                        </table>
+
                         <div class="footer">
                             <div class="sig">
                                 Mengetahui,<br>Kepala Sekolah<br><br><br><br><b>${appSettings.kepsek_name || 'H. Mulyadi, M.Pd.'}</b><br>NIP. ${appSettings.kepsek_nip || '-'}
