@@ -1834,7 +1834,7 @@
                 <!-- RIWAYAT PENILAIAN -->
                 <h5 class="text-[10px] font-black text-sky-800 uppercase mt-4 mb-2">Riwayat Transaksi Poin</h5>
                 <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    ${logs.slice(0, 15).map(l => {
+                    ${logs.slice(0, 100).map(l => {
                         const isGood = l.type === 'Kebaikan';
                         return `
                             <div class="p-2 bg-white rounded-xl border-2 border-sky-50 flex justify-between items-center text-xs">
