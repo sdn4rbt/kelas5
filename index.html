@@ -98,6 +98,12 @@
         <div id="cloud-sync-indicator" class="hidden absolute top-4 right-4 z-50 bg-green-600 text-white font-extrabold text-[10px] px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 animate-pulse">
             <i class="fa-solid fa-cloud-arrow-up animate-bounce"></i> Sinkronisasi Awan...
         </div>
+        
+        <!-- Toast Notifikasi Status Koneksi (Offline/Online) -->
+        <div id="network-status-toast" class="absolute top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-full shadow-lg font-black text-xs flex items-center gap-2 transition-all duration-300 transform -translate-y-24 opacity-0 pointer-events-none">
+            <i id="network-status-icon" class="fa-solid fa-wifi"></i>
+            <span id="network-status-text">Koneksi Terputus</span>
+        </div>
 
         <!-- ========================================== -->
         <!-- VIEW 1: BERANDA / LOGIN / LEADERBOARD      -->
@@ -3679,6 +3685,36 @@ async function postToCloud(table, action, payload, id = null) {
                 showPopup("Popup Diblokir", "Mohon izinkan pop-ups untuk domain ini lalu coba lagi.", "fa-ban", "text-red-500", "bg-red-50");
             }
         }
+                       // --- FITUR STATUS KONEKSI (ONLINE/OFFLINE) ---
+        function updateNetworkStatus(isOnline) {
+            const toast = document.getElementById('network-status-toast');
+            const icon = document.getElementById('network-status-icon');
+            const text = document.getElementById('network-status-text');
+
+            if (isOnline) {
+                toast.className = "absolute top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-full shadow-lg font-black text-xs flex items-center gap-2 transition-all duration-500 bg-green-500 text-white translate-y-0 opacity-100";
+                icon.className = "fa-solid fa-wifi";
+                text.innerText = "Aplikasi Kembali Online";
+                playSfx('success');
+                
+                // Sembunyikan toast setelah 3 detik, lalu jalankan sinkronisasi background
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('-translate-y-24', 'opacity-0');
+                    if (typeof syncFromCloud === 'function') syncFromCloud(); 
+                }, 3000);
+            } else {
+                toast.className = "absolute top-4 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 rounded-full shadow-lg font-black text-xs flex items-center gap-2 transition-all duration-500 bg-red-500 text-white translate-y-0 opacity-100";
+                icon.className = "fa-solid fa-wifi-slash";
+                text.innerText = "Koneksi Terputus (Mode Offline)";
+                playSfx('fail');
+            }
+        }
+
+        // Daftarkan event listener pendeteksi jaringan ke window peramban
+        window.addEventListener('online', () => updateNetworkStatus(true));
+        window.addEventListener('offline', () => updateNetworkStatus(false));
+        
     </script>
 </body>
 </html>
