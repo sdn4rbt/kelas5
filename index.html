@@ -190,7 +190,7 @@
             </div>
             
             <div class="text-center mt-6 text-[10px] text-gray-400 font-black tracking-widest uppercase">
-                Aplikasi Versi <span id="pub-app-version">v2.6.1-Ocean</span>
+                Aplikasi Versi <span id="pub-app-version">v2.6.0-Ocean</span>
             </div>
         </div>
 
@@ -552,12 +552,18 @@
     <!-- LOGIKA JAVASCRIPT & DATABASE               -->
     <!-- ========================================== -->
     <script>
+        // ----------------------------------------------------
+        // FASE 3: MODULARISASI INTERNAL DAN DATA CONTROLLER
+        // Aplikasi disusun dalam Namespace modular untuk 
+        // kemudahan pemeliharaan & proteksi data.
+        // ----------------------------------------------------
+        
+        // MODUL: Konfigurasi Supabase
         const SUPABASE_URL = 'https://nsjdremoodvkjqggasct.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zamRyZW1vb2R2a2pxZ2dhc2N0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwNTc5MTQsImV4cCI6MjA5OTYzMzkxNH0.Qsv6ZcVGLyoUYLZDcWnW1vSz2F4D4xNDRge_bx7eVW4';
-        
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Generator Efek Suara (Web Audio API)
+        // MODUL: Utilitas Independen
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playSfx(type) {
             try {
@@ -596,7 +602,7 @@
             }
         }
 
-        // State Array Lokal
+        // MODUL: State / Store Global
         let students = [];
         let logs = [];
         let restitusiList = [];
@@ -609,9 +615,7 @@
         let taskSubmissions = [];
         let studentMessages = []; 
         let kasAlerts = {}; 
-        let expandedTasks = []; // [V2.7.0] State untuk Collapse Mode Persistent
         
-        // Konfigurasi default
         let appSettings = {
             school_name: "SDN 4 Rambutan",
             class_name: "Kelas 5",
@@ -619,7 +623,7 @@
             guru_nip: "19940812 202012 2 012",
             kepsek_name: "H. Mulyadi, M.Pd.",
             kepsek_nip: "19720503 199603 1 003",
-            app_version: "v2.7.0-Ocean"
+            app_version: "v2.6.0-Ocean"
         };
 
         let currentStudent = null;
@@ -631,10 +635,10 @@
         let activeTaskCategoryFilter = 'Semua'; 
         let isDesktopMode = false; 
 
-        // Custom modal Promise resolvers
         let confirmResolve;
         let promptResolve;
 
+        // MODUL: Siklus Hidup Aplikasi (Lifecycle)
         window.onload = async function() {
             loadLocalBackup();
             await syncFromCloud();
@@ -655,7 +659,6 @@
             if (localStorage.getItem('br_settings')) appSettings = JSON.parse(localStorage.getItem('br_settings'));
             if (localStorage.getItem('br_kas_alerts')) kasAlerts = JSON.parse(localStorage.getItem('br_kas_alerts'));
             if (localStorage.getItem('br_student_messages')) studentMessages = JSON.parse(localStorage.getItem('br_student_messages'));
-            if (localStorage.getItem('br_expanded_tasks')) expandedTasks = JSON.parse(localStorage.getItem('br_expanded_tasks'));
         }
 
         function saveLocalBackup() {
@@ -672,9 +675,9 @@
             localStorage.setItem('br_settings', JSON.stringify(appSettings));
             localStorage.setItem('br_kas_alerts', JSON.stringify(kasAlerts));
             localStorage.setItem('br_student_messages', JSON.stringify(studentMessages));
-            localStorage.setItem('br_expanded_tasks', JSON.stringify(expandedTasks));
         }
 
+        // MODUL: Integrasi Database (Cloud API)
         async function syncFromCloud() {
             toggleCloudSync(true);
             try {
@@ -735,6 +738,84 @@
             }
         }
 
+        async function postToCloud(table, action, payload, id = null) {
+            toggleCloudSync(true);
+            try {
+                if (action === 'upsert') {
+                    await supabaseClient.from(table).upsert(payload);
+                } else if (action === 'delete') {
+                    await supabaseClient.from(table).delete().eq('id', id);
+                }
+            } catch (err) {
+                console.error(`Gagal melakukan operasi ${action} pada tabel ${table}:`, err);
+            } finally {
+                toggleCloudSync(false);
+            }
+        }
+
+        // MODUL: Fungsi Pembantu (Helpers)
+        function toggleCloudSync(show) {
+            const el = document.getElementById('cloud-sync-indicator');
+            if (el) el.classList.toggle('hidden', !show);
+        }
+
+        function formatRupiah(angka) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+        }
+        
+        function getTodayDate() {
+            const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+            return (new Date(Date.now() - tzoffset)).toISOString().split('T')[0];
+        }
+
+        // MODUL: Pengendali UI Interaktif (Modals & Views)
+        function showCustomConfirm(title, message) {
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-message').innerText = message;
+            openModal('modal-confirm');
+            return new Promise((resolve) => {
+                confirmResolve = resolve;
+            });
+        }
+        function handleConfirm(val) {
+            closeModal('modal-confirm');
+            if (confirmResolve) confirmResolve(val);
+        }
+
+        function showCustomPrompt(title, message) {
+            document.getElementById('prompt-title').innerText = title;
+            document.getElementById('prompt-message').innerText = message;
+            document.getElementById('prompt-input').value = '';
+            openModal('modal-prompt');
+            return new Promise((resolve) => {
+                promptResolve = resolve;
+            });
+        }
+        function handlePrompt(submit) {
+            closeModal('modal-prompt');
+            if (promptResolve) {
+                promptResolve(submit ? document.getElementById('prompt-input').value.trim() : null);
+            }
+        }
+
+        function showView(viewId) {
+            document.getElementById('view-login').classList.add('hidden');
+            document.getElementById('view-student').classList.add('hidden');
+            document.getElementById('view-admin').classList.add('hidden');
+            document.getElementById(viewId).classList.remove('hidden');
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function showPopup(title, message, iconClass = "fa-star", iconColor = "text-yellow-500", bgContainer = "bg-yellow-100") {
+            document.getElementById('popup-title').innerText = title;
+            document.getElementById('popup-message').innerText = message;
+            document.getElementById('popup-icon').className = `fa-solid ${iconClass} text-4xl ${iconColor}`;
+            document.getElementById('popup-icon-box').className = `w-20 h-20 rounded-full flex items-center justify-center mx-auto -mt-14 mb-4 border-4 border-white shadow-md ${bgContainer}`;
+            openModal('modal-popup');
+        }
+
         function toggleDesktopMode() {
             playSfx('click');
             const container = document.getElementById('main-container');
@@ -769,65 +850,7 @@
             switchAdminTab(activeAdminTab);
         }
 
-        function updateDynamicSchoolIdentity() {
-            document.getElementById('pub-app-title').innerText = appSettings.school_name || "Bintang Kelas";
-            document.getElementById('pub-class-badge').innerText = `Karakter Hebat ${appSettings.class_name || 'Kelas 5'}`;
-            document.getElementById('pub-school-name').innerText = appSettings.school_name || "SDN 4 Rambutan";
-            document.getElementById('pub-app-version').innerText = appSettings.app_version || "v2.6.1-Ocean";
-
-            document.getElementById('adm-display-teacher').innerText = `Ruang Kerja ${appSettings.guru_name || 'Pak Guru'}`;
-            document.getElementById('adm-display-school').innerText = `${appSettings.school_name || 'SDN 4 Rambutan'} - ${appSettings.class_name || 'KELAS 5'}`;
-        }
-
-        async function postToCloud(table, action, payload, id = null) {
-            toggleCloudSync(true);
-            try {
-                if (action === 'upsert') {
-                    await supabaseClient.from(table).upsert(payload);
-                } else if (action === 'delete') {
-                    await supabaseClient.from(table).delete().eq('id', id);
-                }
-            } catch (err) {
-                console.error(`Gagal melakukan operasi ${action} pada tabel ${table}:`, err);
-            } finally {
-                toggleCloudSync(false);
-            }
-        }
-
-        function toggleCloudSync(show) {
-            const el = document.getElementById('cloud-sync-indicator');
-            if (el) el.classList.toggle('hidden', !show);
-        }
-
-        function showCustomConfirm(title, message) {
-            document.getElementById('confirm-title').innerText = title;
-            document.getElementById('confirm-message').innerText = message;
-            openModal('modal-confirm');
-            return new Promise((resolve) => {
-                confirmResolve = resolve;
-            });
-        }
-        function handleConfirm(val) {
-            closeModal('modal-confirm');
-            if (confirmResolve) confirmResolve(val);
-        }
-
-        function showCustomPrompt(title, message) {
-            document.getElementById('prompt-title').innerText = title;
-            document.getElementById('prompt-message').innerText = message;
-            document.getElementById('prompt-input').value = '';
-            openModal('modal-prompt');
-            return new Promise((resolve) => {
-                promptResolve = resolve;
-            });
-        }
-        function handlePrompt(submit) {
-            closeModal('modal-prompt');
-            if (promptResolve) {
-                promptResolve(submit ? document.getElementById('prompt-input').value.trim() : null);
-            }
-        }
-
+        // MODUL: Logika Portal Siswa
         function filterNames() {
             const input = document.getElementById('login-name');
             const list = document.getElementById('autocomplete-list');
@@ -862,129 +885,6 @@
             list.classList.remove('hidden');
         }
 
-        function getStudentAttendanceStats(studentId) {
-            let totalDays = attendanceData.length;
-            let hadir = 0;
-            let sakit = 0;
-            let izin = 0;
-            let alfa = 0;
-
-            attendanceData.forEach(day => {
-                const status = day.records[studentId] || 'H'; 
-                if (status === 'H') hadir++;
-                else if (status === 'S') sakit++;
-                else if (status === 'I') izin++;
-                else if (status === 'A') alfa++;
-            });
-
-            const totalMarked = hadir + sakit + izin + alfa;
-            const presencePercent = totalMarked > 0 ? Math.round((hadir / totalMarked) * 100) : 100;
-
-            return { totalDays, hadir, sakit, izin, alfa, percent: presencePercent, totalMarked };
-        }
-
-        function getStudentRpgTitle(s) {
-            const att = getStudentAttendanceStats(s.id);
-            const xp = (s.points_good * 12) + (att.hadir * 4) - (s.points_bad * 18);
-            
-            let title = "Petualang Pemula 🎒";
-            let colorClass = "bg-slate-100 text-slate-800";
-            if (xp < 0) {
-                title = "Pendekar Tobat 🛡️";
-                colorClass = "bg-amber-100 text-amber-800";
-            } else if (xp >= 100 && xp < 300) {
-                title = "Ksatria Disiplin ⚔️";
-                colorClass = "bg-indigo-100 text-indigo-800";
-            } else if (xp >= 300 && xp < 600) {
-                title = "Pahlawan Teladan 🌟";
-                colorClass = "bg-sky-100 text-sky-800";
-            } else if (xp >= 600) {
-                title = "Bintang Legendaris 👑";
-                colorClass = "bg-yellow-150 text-yellow-800 font-extrabold animate-pulse border border-yellow-300";
-            }
-            return { title, colorClass, xpValue: xp };
-        }
-
-        function getStudentSubjectInsights(studentId) {
-            const categories = ['PKN', 'BINA', 'MTK', 'IPAS', 'SENI', 'B.ING', 'KKA', 'LITERASI', 'LAINNYA'];
-            const categoryGrades = {};
-            
-            categories.forEach(cat => {
-                categoryGrades[cat] = { sum: 0, count: 0 };
-            });
-            
-            tasks.forEach(t => {
-                const subm = taskSubmissions.find(s => s.task_id === t.id && s.student_id === studentId);
-                if (subm && subm.score !== null && subm.score !== undefined && subm.score !== '') {
-                    const cat = t.category || 'LAINNYA';
-                    if (categoryGrades[cat]) {
-                        categoryGrades[cat].sum += Number(subm.score);
-                        categoryGrades[cat].count += 1;
-                    }
-                }
-            });
-            
-            let bestSubject = null;
-            let worstSubject = null;
-            let bestAvg = -1;
-            let worstAvg = 101;
-            let hasGrades = false;
-            
-            categories.forEach(cat => {
-                const data = categoryGrades[cat];
-                if (data.count > 0) {
-                    hasGrades = true;
-                    const avg = data.sum / data.count;
-                    if (avg > bestAvg) {
-                        bestAvg = avg;
-                        bestSubject = cat;
-                    }
-                    if (avg < worstAvg) {
-                        worstAvg = avg;
-                        worstSubject = cat;
-                    }
-                }
-            });
-            
-            if (!hasGrades) return null;
-            
-            bestAvg = Math.round(bestAvg * 10) / 10;
-            worstAvg = Math.round(worstAvg * 10) / 10;
-            
-            if (bestSubject === worstSubject) {
-                worstSubject = null; 
-            }
-            
-            return {
-                best: { name: bestSubject, avg: bestAvg },
-                worst: worstSubject ? { name: worstSubject, avg: worstAvg } : null
-            };
-        }
-
-        function updateClassAnalytics() {
-            if (attendanceData.length === 0) {
-                document.getElementById('class-monthly-presence-rate').innerText = "100% Bulan Ini";
-            } else {
-                let totalHadirCount = 0;
-                let totalRecordCount = 0;
-                
-                attendanceData.forEach(day => {
-                    Object.values(day.records).forEach(status => {
-                        if (status === 'H') totalHadirCount++;
-                        totalRecordCount++;
-                    });
-                });
-                
-                const avgPercent = totalRecordCount > 0 ? Math.round((totalHadirCount / totalRecordCount) * 100) : 100;
-                document.getElementById('class-monthly-presence-rate').innerText = `${avgPercent}% Bulan Ini`;
-            }
-
-            const totalSubmCount = taskSubmissions.length;
-            const completedSubmCount = taskSubmissions.filter(s => s.status === 'Sudah Kumpul').length;
-            const tasksPercent = totalSubmCount > 0 ? Math.round((completedSubmCount / totalSubmCount) * 100) : 0;
-            document.getElementById('class-monthly-tasks-rate').innerText = `${tasksPercent}% Selesai`;
-        }
-
         async function loginStudent() {
             const nameInput = document.getElementById('login-name');
             if (!nameInput) return;
@@ -1012,6 +912,87 @@
             setTimeout(() => {
                 showPopup(`Salam Murid Hebat!`, `Halo ${currentStudent.name}, selamat beraktivitas di kelas hari ini!`, "fa-thumbs-up", "text-sky-500", "bg-sky-100");
             }, 300);
+        }
+
+        function logout() {
+            playSfx('click');
+            currentStudent = null;
+            document.getElementById('login-name').value = '';
+            document.getElementById('admin-pin').value = '';
+            renderDashboardStats();
+            showView('view-login');
+        }
+
+        function getStudentAttendanceStats(studentId) {
+            let totalDays = attendanceData.length;
+            let hadir = 0; let sakit = 0; let izin = 0; let alfa = 0;
+            attendanceData.forEach(day => {
+                const status = day.records[studentId] || 'H'; 
+                if (status === 'H') hadir++;
+                else if (status === 'S') sakit++;
+                else if (status === 'I') izin++;
+                else if (status === 'A') alfa++;
+            });
+            const totalMarked = hadir + sakit + izin + alfa;
+            const presencePercent = totalMarked > 0 ? Math.round((hadir / totalMarked) * 100) : 100;
+            return { totalDays, hadir, sakit, izin, alfa, percent: presencePercent, totalMarked };
+        }
+
+        function getStudentRpgTitle(s) {
+            const att = getStudentAttendanceStats(s.id);
+            const xp = (s.points_good * 12) + (att.hadir * 4) - (s.points_bad * 18);
+            let title = "Petualang Pemula 🎒";
+            let colorClass = "bg-slate-100 text-slate-800";
+            if (xp < 0) {
+                title = "Pendekar Tobat 🛡️"; colorClass = "bg-amber-100 text-amber-800";
+            } else if (xp >= 100 && xp < 300) {
+                title = "Ksatria Disiplin ⚔️"; colorClass = "bg-indigo-100 text-indigo-800";
+            } else if (xp >= 300 && xp < 600) {
+                title = "Pahlawan Teladan 🌟"; colorClass = "bg-sky-100 text-sky-800";
+            } else if (xp >= 600) {
+                title = "Bintang Legendaris 👑"; colorClass = "bg-yellow-150 text-yellow-800 font-extrabold animate-pulse border border-yellow-300";
+            }
+            return { title, colorClass, xpValue: xp };
+        }
+
+        function getStudentSubjectInsights(studentId) {
+            const categories = ['PKN', 'BINA', 'MTK', 'IPAS', 'SENI', 'B.ING', 'KKA', 'LITERASI', 'LAINNYA'];
+            const categoryGrades = {};
+            categories.forEach(cat => categoryGrades[cat] = { sum: 0, count: 0 });
+            
+            tasks.forEach(t => {
+                const subm = taskSubmissions.find(s => s.task_id === t.id && s.student_id === studentId);
+                if (subm && subm.score !== null && subm.score !== undefined && subm.score !== '') {
+                    const cat = t.category || 'LAINNYA';
+                    if (categoryGrades[cat]) {
+                        categoryGrades[cat].sum += Number(subm.score);
+                        categoryGrades[cat].count += 1;
+                    }
+                }
+            });
+            
+            let bestSubject = null; let worstSubject = null;
+            let bestAvg = -1; let worstAvg = 101; let hasGrades = false;
+            
+            categories.forEach(cat => {
+                const data = categoryGrades[cat];
+                if (data.count > 0) {
+                    hasGrades = true;
+                    const avg = data.sum / data.count;
+                    if (avg > bestAvg) { bestAvg = avg; bestSubject = cat; }
+                    if (avg < worstAvg) { worstAvg = avg; worstSubject = cat; }
+                }
+            });
+            
+            if (!hasGrades) return null;
+            bestAvg = Math.round(bestAvg * 10) / 10;
+            worstAvg = Math.round(worstAvg * 10) / 10;
+            if (bestSubject === worstSubject) worstSubject = null; 
+            
+            return {
+                best: { name: bestSubject, avg: bestAvg },
+                worst: worstSubject ? { name: worstSubject, avg: worstAvg } : null
+            };
         }
 
         function changeStudentSubTab(tabName) {
@@ -1103,7 +1084,6 @@
                 badgeBox.innerHTML = `<i class="fa-solid fa-heart mr-1"></i> Poin kebaikan berikutnya akan otomatis digunakan melunasi sisa pelanggaran ini.`;
             }
 
-            // Pesan dari guru
             const msgContainer = document.getElementById('student-messages-alert');
             const myMsgs = studentMessages.filter(m => m.student_id === currentStudent.id && !m.is_read);
             if(myMsgs.length > 0) {
@@ -1140,7 +1120,6 @@
             if (insights) {
                 insightCard.classList.remove('hidden');
                 let insightHtml = '';
-                
                 if (insights.best) {
                     insightHtml += `
                         <div class="bg-sky-50 border border-sky-200 p-2.5 rounded-2xl">
@@ -1216,7 +1195,6 @@
 
             const kasBox = document.getElementById('student-kas-list');
             kasBox.innerHTML = '';
-            
             const totalKas = kasTransactions.reduce((acc, curr) => curr.type === 'in' ? acc + Number(curr.amount) : acc - Number(curr.amount), 0);
             kasBox.innerHTML += `
                 <div class="p-3 bg-sky-600 text-white rounded-xl text-center shadow-inner mb-3">
@@ -1251,7 +1229,6 @@
         function renderStudentMisiList() {
             const misiContainer = document.getElementById('student-misi-list');
             misiContainer.innerHTML = '';
-
             const allMisi = tasks.filter(t => t.type === 'Misi');
             if (allMisi.length === 0) {
                 misiContainer.innerHTML = `<p class="text-xs text-gray-400 text-center py-4 font-bold">Belum ada misi karakter aktif.</p>`;
@@ -1278,7 +1255,6 @@
                 groupedMisi[cat].forEach(m => {
                     const subm = taskSubmissions.find(s => s.task_id === m.id && s.student_id === currentStudent.id);
                     const status = subm ? subm.status : 'Belum Kumpul';
-
                     if (status === 'Sudah Kumpul') completedMisiCount++;
 
                     let badgeColor = "bg-gray-100 text-gray-600 border border-gray-300";
@@ -1293,6 +1269,10 @@
                         actionButtonHtml = `<button onclick="laporTugasSelesai('${m.id}')" class="mt-2 w-full py-1.5 bg-yellow-400 text-amber-950 font-black rounded-lg text-[10px] btn-3d border-b-2 border-yellow-600">REMEDIAL SELESAI? LAPOR SEKARANG! 🚀</button>`;
                     } else {
                         actionButtonHtml = `<button onclick="laporTugasSelesai('${m.id}')" class="mt-2 w-full py-1.5 bg-orange-500 text-white font-black rounded-lg text-[10px] btn-3d border-b-2 border-orange-700">MULAI SELESAIKAN MISI! ⚔️</button>`;
+                    }
+
+                    if (m.is_locked) {
+                        actionButtonHtml = `<span class="mt-2 flex items-center justify-center gap-1.5 w-full py-2 bg-red-50 text-red-600 font-black rounded-lg text-[10px] border border-red-200"><i class="fa-solid fa-lock"></i> Misi Terkunci</span>`;
                     }
 
                     misiContainer.innerHTML += `
@@ -1318,7 +1298,6 @@
         function renderStudentTugasList() {
             const tugasContainer = document.getElementById('student-tasks-list');
             tugasContainer.innerHTML = '';
-
             const allTugas = tasks.filter(t => t.type === 'Tugas');
             if (allTugas.length === 0) {
                 tugasContainer.innerHTML = `<p class="text-xs text-gray-400 text-center py-4 font-bold">Belum ada tugas akademik aktif.</p>`;
@@ -1369,6 +1348,10 @@
                                 <button onclick="laporTugasDenganNilaiSiswa('${t.id}')" class="bg-blue-600 hover:bg-blue-700 text-white font-black text-[9px] px-2.5 py-1.5 rounded-lg border-b-2 border-blue-800 uppercase">Kumpul</button>
                             </div>
                         `;
+                    }
+
+                    if (t.is_locked) {
+                        inputScoreHtml = `<span class="mt-2.5 inline-flex items-center gap-1.5 text-xs font-black text-red-700 bg-red-50 px-3 py-1.5 rounded-xl border border-red-200"><i class="fa-solid fa-lock"></i> Terkunci (Nilai: ${currentScore !== '' ? currentScore : '-'})</span>`;
                     }
 
                     tugasContainer.innerHTML += `
@@ -1542,6 +1525,29 @@
             }
         }
 
+        function updateClassAnalytics() {
+            if (attendanceData.length === 0) {
+                document.getElementById('class-monthly-presence-rate').innerText = "100% Bulan Ini";
+            } else {
+                let totalHadirCount = 0;
+                let totalRecordCount = 0;
+                attendanceData.forEach(day => {
+                    Object.values(day.records).forEach(status => {
+                        if (status === 'H') totalHadirCount++;
+                        totalRecordCount++;
+                    });
+                });
+                const avgPercent = totalRecordCount > 0 ? Math.round((totalHadirCount / totalRecordCount) * 100) : 100;
+                document.getElementById('class-monthly-presence-rate').innerText = `${avgPercent}% Bulan Ini`;
+            }
+
+            const totalSubmCount = taskSubmissions.length;
+            const completedSubmCount = taskSubmissions.filter(s => s.status === 'Sudah Kumpul').length;
+            const tasksPercent = totalSubmCount > 0 ? Math.round((completedSubmCount / totalSubmCount) * 100) : 0;
+            document.getElementById('class-monthly-tasks-rate').innerText = `${tasksPercent}% Selesai`;
+        }
+
+        // MODUL: Autentikasi Admin & Routing Tab
         let secretCount = 0;
         let secretTimer = null;
         function setupAdminTrigger() {
@@ -1587,27 +1593,28 @@
                 activeBtn.className = "p-2 bg-sky-100 border-2 border-sky-400 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition scale-105 font-black";
             }
 
-            if (tabName === 'siswa') {
-                renderTabSiswa(container);
-            } else if (tabName === 'poin') {
-                renderTabPoin(container);
-            } else if (tabName === 'restitusi') {
-                renderTabRestitusi(container);
-            } else if (tabName === 'absen') {
-                renderTabAbsen(container);
-            } else if (tabName === 'kas') {
-                renderTabKas(container);
-            } else if (tabName === 'tugas') {
-                renderTabTugas(container);
-            } else if (tabName === 'rekap_nilai') {
-                renderTabRekapNilai(container);
-            } else if (tabName === 'identitas') {
-                renderTabIdentitas(container);
-            } else if (tabName === 'rapor') {
-                renderTabRapor(container);
-            }
+            if (tabName === 'siswa') renderTabSiswa(container);
+            else if (tabName === 'poin') renderTabPoin(container);
+            else if (tabName === 'restitusi') renderTabRestitusi(container);
+            else if (tabName === 'absen') renderTabAbsen(container);
+            else if (tabName === 'kas') renderTabKas(container);
+            else if (tabName === 'tugas') renderTabTugas(container);
+            else if (tabName === 'rekap_nilai') renderTabRekapNilai(container);
+            else if (tabName === 'identitas') renderTabIdentitas(container);
+            else if (tabName === 'rapor') renderTabRapor(container);
         }
 
+        function updateDynamicSchoolIdentity() {
+            document.getElementById('pub-app-title').innerText = appSettings.school_name || "Bintang Kelas";
+            document.getElementById('pub-class-badge').innerText = `Karakter Hebat ${appSettings.class_name || 'Kelas 5'}`;
+            document.getElementById('pub-school-name').innerText = appSettings.school_name || "SDN 4 Rambutan";
+            document.getElementById('pub-app-version').innerText = appSettings.app_version || "v2.6.0-Ocean";
+
+            document.getElementById('adm-display-teacher').innerText = `Ruang Kerja ${appSettings.guru_name || 'Pak Guru'}`;
+            document.getElementById('adm-display-school').innerText = `${appSettings.school_name || 'SDN 4 Rambutan'} - ${appSettings.class_name || 'KELAS 5'}`;
+        }
+
+        // MODUL: Pengelolaan Siswa (Admin)
         function renderTabSiswa(container) {
             let html = `
                 <div class="flex justify-between items-center mb-3">
@@ -1700,6 +1707,139 @@
             showPopup("Pesan Terkirim", `Pesan berhasil dikirim ke portal ${s.name}.`, "fa-paper-plane", "text-sky-500", "bg-sky-50");
         }
 
+        function bukaFormTambahSiswa() {
+            const box = document.getElementById('form-siswa-box');
+            if (box) {
+                box.classList.toggle('hidden');
+                document.getElementById('in-siswa-id').value = '';
+                document.getElementById('in-siswa-name').value = '';
+                document.getElementById('in-siswa-good').value = '0';
+                document.getElementById('in-siswa-bad').value = '0';
+                document.getElementById('in-siswa-photo-data').value = '';
+                document.getElementById('in-siswa-photo').value = '';
+                document.getElementById('preview-photo').classList.add('hidden');
+                document.getElementById('preview-icon').classList.remove('hidden');
+            }
+        }
+
+        function bukaFormEditSiswa(id) {
+            const s = students.find(x => x.id.toString() === id.toString());
+            if (!s) return;
+            const box = document.getElementById('form-siswa-box');
+            if (box) {
+                box.classList.remove('hidden');
+                document.getElementById('in-siswa-id').value = s.id;
+                document.getElementById('in-siswa-name').value = s.name;
+                document.getElementById('in-siswa-gender').value = s.gender;
+                document.getElementById('in-siswa-good').value = s.points_good;
+                document.getElementById('in-siswa-bad').value = s.points_bad;
+                
+                document.getElementById('in-siswa-photo').value = ''; 
+                const photoDataInput = document.getElementById('in-siswa-photo-data');
+                const previewImg = document.getElementById('preview-photo');
+                const previewIcon = document.getElementById('preview-icon');
+                
+                if (s.photo) {
+                    photoDataInput.value = s.photo;
+                    previewImg.src = s.photo;
+                    previewImg.classList.remove('hidden');
+                    previewIcon.classList.add('hidden');
+                } else {
+                    photoDataInput.value = '';
+                    previewImg.classList.add('hidden');
+                    previewIcon.classList.remove('hidden');
+                }
+            }
+        }
+
+        function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function(e) {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const MAX_WIDTH = 200;
+                    const MAX_HEIGHT = 200;
+                    let width = img.width; let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                    } else {
+                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                    }
+                    canvas.width = width; canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    document.getElementById('in-siswa-photo-data').value = dataUrl;
+                    const previewImg = document.getElementById('preview-photo');
+                    previewImg.src = dataUrl;
+                    previewImg.classList.remove('hidden');
+                    document.getElementById('preview-icon').classList.add('hidden');
+                }
+            }
+        }
+
+        async function simpanDataSiswa() {
+            const id = document.getElementById('in-siswa-id').value;
+            const name = document.getElementById('in-siswa-name').value.trim();
+            const gender = document.getElementById('in-siswa-gender').value;
+            const ptsGood = parseInt(document.getElementById('in-siswa-good').value) || 0;
+            const ptsBad = parseInt(document.getElementById('in-siswa-bad').value) || 0;
+            const photoData = document.getElementById('in-siswa-photo-data').value;
+
+            if (name === "") {
+                showPopup("Data Kosong", "Mohon isi nama siswa yang lengkap!", "fa-circle-xmark", "text-red-500", "bg-red-50");
+                return;
+            }
+
+            let sPayload = {};
+            if (id) {
+                const index = students.findIndex(x => x.id.toString() === id.toString());
+                if (index !== -1) {
+                    students[index].name = name;
+                    students[index].gender = gender;
+                    students[index].photo = photoData;
+                    students[index].points_good = ptsGood;
+                    students[index].points_bad = ptsBad;
+                    sPayload = students[index];
+                }
+            } else {
+                sPayload = {
+                    id: Date.now().toString(),
+                    name: name,
+                    gender: gender,
+                    photo: photoData,
+                    points_good: ptsGood,
+                    points_bad: ptsBad
+                };
+                students.push(sPayload);
+            }
+
+            saveLocalBackup();
+            switchAdminTab('siswa');
+            playSfx('success');
+            await postToCloud("students", "upsert", sPayload);
+            showPopup("Siswa Tersimpan", "Data profil dan poin siswa telah direkam.", "fa-user-check", "text-sky-500", "bg-sky-50");
+        }
+
+        async function hapusSiswa(id) {
+            const conf = await showCustomConfirm("Keluarkan Siswa", "Apakah Anda yakin ingin mengeluarkan siswa ini? Seluruh riwayat akan ikut hilang.");
+            if (!conf) return;
+
+            students = students.filter(x => x.id !== id);
+            saveLocalBackup();
+            switchAdminTab('siswa');
+            playSfx('fail');
+            await postToCloud("students", "delete", null, id);
+        }
+
+        // MODUL: Pengelolaan Poin Karakter (Admin)
         function renderTabPoin(container) {
             let html = `
                 <div class="flex justify-between items-center mb-3">
@@ -1834,7 +1974,7 @@
                 <!-- RIWAYAT PENILAIAN -->
                 <h5 class="text-[10px] font-black text-sky-800 uppercase mt-4 mb-2">Riwayat Transaksi Poin</h5>
                 <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                    ${logs.slice(0, 100).map(l => {
+                    ${logs.slice(0, 15).map(l => {
                         const isGood = l.type === 'Kebaikan';
                         return `
                             <div class="p-2 bg-white rounded-xl border-2 border-sky-50 flex justify-between items-center text-xs">
@@ -1886,19 +2026,12 @@
             resultsBox.classList.remove('hidden');
         }
 
-        function togglePresetKebaikanPanel() {
-            document.getElementById('preset-kebaikan-crud-panel').classList.toggle('hidden');
-        }
-
-        function togglePresetPelanggaranPanel() {
-            document.getElementById('preset-crud-panel').classList.toggle('hidden');
-        }
-
+        function togglePresetKebaikanPanel() { document.getElementById('preset-kebaikan-crud-panel').classList.toggle('hidden'); }
+        function togglePresetPelanggaranPanel() { document.getElementById('preset-crud-panel').classList.toggle('hidden'); }
         function togglePoinInputMode(mode) {
             document.getElementById('poin-single-target').classList.toggle('hidden', mode !== 'single');
             document.getElementById('poin-collective-target').classList.toggle('hidden', mode !== 'collective');
         }
-
         function toggleSelectAllStudents(check) {
             const checkboxes = document.getElementsByName('collective_students');
             checkboxes.forEach(cb => cb.checked = check);
@@ -1952,18 +2085,9 @@
                 return;
             }
 
-            const newPreset = {
-                id: id ? id : 'GP_' + Date.now(),
-                title: title,
-                default_points: points
-            };
-
+            const newPreset = { id: id ? id : 'GP_' + Date.now(), title: title, default_points: points };
             const existingIdx = goodPresets.findIndex(p => p.id === newPreset.id);
-            if (existingIdx >= 0) {
-                goodPresets[existingIdx] = newPreset;
-            } else {
-                goodPresets.push(newPreset);
-            }
+            if (existingIdx >= 0) goodPresets[existingIdx] = newPreset; else goodPresets.push(newPreset);
 
             saveLocalBackup();
             switchAdminTab('poin');
@@ -2007,18 +2131,9 @@
                 return;
             }
 
-            const newPreset = {
-                id: id ? id : 'VP_' + Date.now(),
-                title: title,
-                default_points: points
-            };
-
+            const newPreset = { id: id ? id : 'VP_' + Date.now(), title: title, default_points: points };
             const existingIdx = violationPresets.findIndex(p => p.id === newPreset.id);
-            if (existingIdx >= 0) {
-                violationPresets[existingIdx] = newPreset;
-            } else {
-                violationPresets.push(newPreset);
-            }
+            if (existingIdx >= 0) violationPresets[existingIdx] = newPreset; else violationPresets.push(newPreset);
 
             saveLocalBackup();
             switchAdminTab('poin');
@@ -2073,9 +2188,7 @@
                 targetStudentIds.push(stdId);
             } else {
                 const checkboxes = document.getElementsByName('collective_students');
-                checkboxes.forEach(cb => {
-                    if (cb.checked) targetStudentIds.push(cb.value);
-                });
+                checkboxes.forEach(cb => { if (cb.checked) targetStudentIds.push(cb.value); });
             }
 
             if (targetStudentIds.length === 0) {
@@ -2090,7 +2203,6 @@
                 const student = students.find(s => s.id.toString() === stdId.toString());
                 if (student) {
                     let finalLogDesc = desc;
-
                     if (type === "Kebaikan") {
                         if (student.points_bad > 0) {
                             if (student.points_bad >= pts) {
@@ -2099,8 +2211,7 @@
                             } else {
                                 const sisaPoinKebaikan = pts - student.points_bad;
                                 finalLogDesc += ` (Otomatis melunasi sisa ${student.points_bad} poin pelanggaran, sisa +${sisaPoinKebaikan} bintang)`;
-                                student.points_bad = 0;
-                                student.points_good += sisaPoinKebaikan;
+                                student.points_bad = 0; student.points_good += sisaPoinKebaikan;
                             }
                         } else {
                             student.points_good += pts;
@@ -2110,26 +2221,16 @@
                     }
 
                     const newLog = {
-                        id: 'L_' + (Date.now() + i),
-                        student_id: student.id,
-                        student_name: student.name,
-                        type: type,
-                        description: finalLogDesc,
-                        points: pts,
-                        timestamp: new Date().toLocaleString('id-ID')
+                        id: 'L_' + (Date.now() + i), student_id: student.id, student_name: student.name,
+                        type: type, description: finalLogDesc, points: pts, timestamp: new Date().toLocaleString('id-ID')
                     };
-
                     logs.unshift(newLog);
-
                     await postToCloud("students", "upsert", student);
                     await postToCloud("logs", "upsert", newLog);
                 }
             }
 
-            saveLocalBackup();
-            renderDashboardStats();
-            updateClassAnalytics();
-            switchAdminTab('poin');
+            saveLocalBackup(); renderDashboardStats(); updateClassAnalytics(); switchAdminTab('poin');
             playSfx('success');
             showPopup("Poin Disimpan!", `Berhasil mencatat poin karakter untuk ${targetStudentIds.length} siswa.`, "fa-award", "text-yellow-500", "bg-yellow-100");
         }
@@ -2140,26 +2241,20 @@
 
             const log = logs.find(l => l.id === id);
             if (!log) return;
-
             const std = students.find(s => s.id === log.student_id);
             if (std) {
-                if (log.type === 'Kebaikan') {
-                    std.points_good = Math.max(0, std.points_good - log.points);
-                } else {
-                    std.points_bad = Math.max(0, std.points_bad - log.points);
-                }
+                if (log.type === 'Kebaikan') std.points_good = Math.max(0, std.points_good - log.points);
+                else std.points_bad = Math.max(0, std.points_bad - log.points);
                 await postToCloud("students", "upsert", std);
             }
 
             logs = logs.filter(l => l.id !== id);
-            saveLocalBackup();
-            renderDashboardStats();
-            updateClassAnalytics();
-            switchAdminTab('poin');
+            saveLocalBackup(); renderDashboardStats(); updateClassAnalytics(); switchAdminTab('poin');
             playSfx('fail');
             await postToCloud("logs", "delete", null, id);
         }
 
+        // MODUL: Restitusi Karakter (Admin)
         function renderTabRestitusi(container) {
             let html = `
                 <div class="flex border-b border-gray-200 mb-4">
@@ -2263,23 +2358,11 @@
                 return;
             }
 
-            const newPreset = {
-                id: id ? id : 'R_' + Date.now(),
-                title: title,
-                description: desc,
-                point_reduction: points
-            };
-
+            const newPreset = { id: id ? id : 'R_' + Date.now(), title: title, description: desc, point_reduction: points };
             const existingIdx = restitusiList.findIndex(p => p.id === newPreset.id);
-            if (existingIdx >= 0) {
-                restitusiList[existingIdx] = newPreset;
-            } else {
-                restitusiList.push(newPreset);
-            }
+            if (existingIdx >= 0) restitusiList[existingIdx] = newPreset; else restitusiList.push(newPreset);
 
-            saveLocalBackup();
-            changeRestitusiSubTab('preset');
-            playSfx('success');
+            saveLocalBackup(); changeRestitusiSubTab('preset'); playSfx('success');
             await postToCloud("restitusi_list", "upsert", newPreset);
         }
 
@@ -2304,9 +2387,7 @@
             if (!conf) return;
 
             restitusiList = restitusiList.filter(p => p.id !== id);
-            saveLocalBackup();
-            changeRestitusiSubTab('preset');
-            playSfx('fail');
+            saveLocalBackup(); changeRestitusiSubTab('preset'); playSfx('fail');
             await postToCloud("restitusi_list", "delete", null, id);
         }
 
@@ -2322,31 +2403,24 @@
 
             if (status === 'Approved' && student && task) {
                 student.points_bad = Math.max(0, student.points_bad - task.point_reduction);
-                
                 const newLog = {
-                    id: 'L_' + Date.now(),
-                    student_id: student.id,
-                    student_name: student.name,
-                    type: 'Kebaikan',
-                    description: 'Selesai restitusi: ' + req.restitusi_title,
-                    points: task.point_reduction,
+                    id: 'L_' + Date.now(), student_id: student.id, student_name: student.name,
+                    type: 'Kebaikan', description: 'Selesai restitusi: ' + req.restitusi_title, points: task.point_reduction,
                     timestamp: new Date().toLocaleDateString('id-ID')
                 };
                 logs.unshift(newLog);
-
                 await postToCloud("students", "upsert", student);
                 await postToCloud("logs", "upsert", newLog);
             }
 
             restitusiRequests.splice(index, 1);
-            saveLocalBackup();
-            switchAdminTab('restitusi');
+            saveLocalBackup(); switchAdminTab('restitusi');
             playSfx(status === 'Approved' ? 'success' : 'fail');
-
             await postToCloud("restitusi_requests", "upsert", req);
             showPopup("Verifikasi Selesai", `Restitusi siswa telah dikonfirmasi: ${status}`, "fa-circle-check", "text-sky-500", "bg-sky-50");
         }
 
+        // MODUL: Pengelolaan Absensi (Admin)
         function renderTabAbsen(container) {
             const today = getTodayDate();
             let selectedDate = document.getElementById('absen-date-picker')?.value || today;
@@ -2378,7 +2452,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
             `;
 
@@ -2405,10 +2478,7 @@
 
         function setAbsenDatePicker(dateStr) {
             const picker = document.getElementById('absen-date-picker');
-            if (picker) {
-                picker.value = dateStr;
-                changeAbsenView();
-            }
+            if (picker) { picker.value = dateStr; changeAbsenView(); }
         }
 
         function getAbsenBtnClass(opt) {
@@ -2432,9 +2502,7 @@
             
             ['H','S','I','A'].forEach(x => {
                 const btn = document.getElementById(`btn-abs-${studentId}-${x}`);
-                if (btn) {
-                    btn.className = `w-7 h-7 text-xs font-black rounded-lg transition-all ${x === opt ? getAbsenBtnClass(x) : 'bg-gray-100 text-gray-400'}`;
-                }
+                if (btn) btn.className = `w-7 h-7 text-xs font-black rounded-lg transition-all ${x === opt ? getAbsenBtnClass(x) : 'bg-gray-100 text-gray-400'}`;
             });
         }
 
@@ -2448,17 +2516,15 @@
                 attendanceData.push(att);
             }
 
-            saveLocalBackup();
-            playSfx('success');
+            saveLocalBackup(); playSfx('success');
             await postToCloud("attendance", "upsert", att);
             updateClassAnalytics();
             showPopup("Presensi Disimpan!", `Berhasil memperbarui kehadiran tanggal ${selectedDate}.`, "fa-calendar-check", "text-violet-500", "bg-violet-100");
         }
 
-        function changeAbsenView() {
-            renderTabAbsen(document.getElementById('admin-panel-content'));
-        }
+        function changeAbsenView() { renderTabAbsen(document.getElementById('admin-panel-content')); }
 
+        // MODUL: Pengelolaan Uang Kas Kelas (Admin)
         function renderTabKas(container) {
             const totalKas = kasTransactions.reduce((acc, curr) => curr.type === 'in' ? acc + Number(curr.amount) : acc - Number(curr.amount), 0);
             let studentOptionsHtml = students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
@@ -2476,7 +2542,6 @@
                     <i class="fa-solid fa-wallet text-2xl text-sky-200"></i>
                 </div>
 
-                <!-- FORM PENAGIHAN KAS KELAS -->
                 <div class="bg-red-50/50 p-3 rounded-2xl border-2 border-red-200 space-y-3 mb-3">
                     <h5 class="text-[10px] font-black text-red-800 uppercase border-b border-red-100 pb-1"><i class="fa-solid fa-bell"></i> Ingatkan Tunggakan Kas Kelas</h5>
                     <div class="grid grid-cols-2 gap-2">
@@ -2495,7 +2560,6 @@
                     <button onclick="kirimPeringatanKas()" class="w-full bg-red-600 hover:bg-red-500 text-white font-black text-xs py-2 rounded-xl btn-3d border-b-4 border-red-800">Kirim Peringatan Berkedip Ke Portal Siswa</button>
                 </div>
 
-                <!-- FORM INPUT TRANSAKSI KAS -->
                 <div class="bg-white p-3 rounded-2xl border-2 border-sky-100 space-y-3">
                     <h5 class="text-[10px] font-black text-sky-800 uppercase border-b border-sky-100 pb-1">Transaksi Kas Umum</h5>
                     <input type="hidden" id="kas-id">
@@ -2531,7 +2595,6 @@
                 </div>
             `;
 
-            // Daftar Tabel Buku Kas Interaktif
             html += `
                 <h5 class="text-[10px] font-black text-sky-800 uppercase mt-4 mb-2">Riwayat Transaksi Buku Kas</h5>
                 <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
@@ -2577,14 +2640,8 @@
             }
 
             kasAlerts[studentId] = Number(amount);
-            saveLocalBackup();
-            switchAdminTab('kas');
-            playSfx('success');
-
-            await postToCloud("kas_alerts", "upsert", {
-                student_id: studentId,
-                amount: Number(amount)
-            });
+            saveLocalBackup(); switchAdminTab('kas'); playSfx('success');
+            await postToCloud("kas_alerts", "upsert", { student_id: studentId, amount: Number(amount) });
             showPopup("Peringatan Dikirim!", "Notifikasi tagihan kas berkedip aktif di portal siswa.", "fa-bell", "text-sky-500", "bg-sky-50");
         }
 
@@ -2600,24 +2657,11 @@
                 return;
             }
 
-            const newKas = {
-                id: id ? id : 'K_' + Date.now(),
-                date,
-                type,
-                amount: Number(amount),
-                description: desc
-            };
-
+            const newKas = { id: id ? id : 'K_' + Date.now(), date, type, amount: Number(amount), description: desc };
             const existIdx = kasTransactions.findIndex(k => k.id === newKas.id);
-            if (existIdx >= 0) {
-                kasTransactions[existIdx] = newKas;
-            } else {
-                kasTransactions.push(newKas);
-            }
+            if (existIdx >= 0) kasTransactions[existIdx] = newKas; else kasTransactions.push(newKas);
 
-            saveLocalBackup();
-            switchAdminTab('kas');
-            playSfx('success');
+            saveLocalBackup(); switchAdminTab('kas'); playSfx('success');
             await postToCloud("kas_transactions", "upsert", newKas);
         }
 
@@ -2642,12 +2686,11 @@
             if (!conf) return;
 
             kasTransactions = kasTransactions.filter(k => k.id !== id);
-            saveLocalBackup();
-            switchAdminTab('kas');
-            playSfx('fail');
+            saveLocalBackup(); switchAdminTab('kas'); playSfx('fail');
             await postToCloud("kas_transactions", "delete", null, id);
         }
 
+        // MODUL: Pengelolaan Tugas, Nilai, & Misi Karakter (Admin) - TERMASUK FITUR KUNCI NILAI
         function isTaskFullyCompleted(taskId) {
             const subs = taskSubmissions.filter(s => s.task_id === taskId);
             if (subs.length === 0) return false;
@@ -2663,15 +2706,11 @@
                 return new Date(b.created_at || 0) - new Date(a.created_at || 0);
             });
 
-            // Filter ganda berdasarkan tipe tab DAN kategori dropdown
             const filteredTasks = sortedTasks.filter(t => {
                 if (activeTaskTabFilter !== 'Semua' && t.type !== activeTaskTabFilter) return false;
                 if (activeTaskCategoryFilter !== 'Semua' && t.category !== activeTaskCategoryFilter) return false;
                 return true;
             });
-
-            const countTugas = tasks.filter(t => t.type === 'Tugas').length;
-            const countMisi = tasks.filter(t => t.type === 'Misi').length;
 
             let html = `
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-gray-100 pb-3 mb-4">
@@ -2689,6 +2728,7 @@
 
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
                     
+                    <!-- FORM INPUT TUGAS -->
                     <div id="form-tugas-box" class="hidden lg:block lg:col-span-5 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 p-4 rounded-3xl border-2 border-blue-100/80 space-y-3 shadow-sm">
                         <div class="flex items-center justify-between border-b border-blue-100 pb-2">
                             <h5 class="text-xs font-black text-blue-900 uppercase flex items-center gap-1.5">
@@ -2749,6 +2789,7 @@
                         </div>
                     </div>
 
+                    <!-- DAFTAR TUGAS -->
                     <div id="tugas-list-area" class="lg:col-span-12 space-y-3 transition-all duration-300">
                         
                         <div class="flex bg-slate-100 p-1 rounded-xl gap-1 items-center flex-wrap md:flex-nowrap">
@@ -2795,8 +2836,7 @@
                     const completionRate = totalAssigned > 0 ? Math.round((completed / totalAssigned) * 100) : 0;
                     
                     const isAllFinished = isTaskFullyCompleted(t.id);
-                    const isExpanded = expandedTasks.includes(t.id);
-                    const isLocked = t.isLocked || false;
+                    const isExpanded = expandedTaskId === t.id;
 
                     let totalScoreVal = 0;
                     let gradedCount = 0;
@@ -2822,26 +2862,13 @@
 
                     const borderGradient = t.type === 'Misi' ? 'border-amber-100 hover:border-amber-300' : 'border-blue-100 hover:border-blue-300';
                     const iconHeader = t.type === 'Misi' ? 'fa-shield-halved text-amber-500' : 'fa-graduation-cap text-blue-500';
-                    
-                    // Style dinamis untuk tombol lock
-                    let lockBtnClass = "text-gray-300 bg-gray-50 cursor-not-allowed";
-                    let lockBtnTitle = "Kunci Nilai (Aktif jika Semua Tuntas)";
-                    if (isAllFinished) {
-                        if (isLocked) {
-                            lockBtnClass = "text-red-600 bg-red-100 hover:bg-red-200 shadow-inner";
-                            lockBtnTitle = "Buka Kunci Nilai";
-                        } else {
-                            lockBtnClass = "text-emerald-600 bg-emerald-100 hover:bg-emerald-200";
-                            lockBtnTitle = "Kunci Nilai Permanen";
-                        }
-                    }
 
                     html += `
-                        <div class="p-4 bg-white border-2 ${borderGradient} rounded-3xl shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden">
-                            ${isLocked ? '<div class="absolute inset-0 border-4 border-red-500/20 rounded-3xl pointer-events-none z-10"></div>' : ''}
-                            <!-- HEADER KARTU TUGAS -->
+                        <div class="p-4 bg-white border-2 ${borderGradient} rounded-3xl shadow-sm hover:shadow-md transition-all duration-200">
+                            
+                            <!-- HEADER KARTU TUGAS (DENGAN TOMBOL LOCK) -->
                             <div class="flex justify-between items-start gap-3 pb-3 border-b border-gray-100 cursor-pointer" onclick="toggleTaskGrading('${t.id}')">
-                                <div class="flex items-start gap-2.5 min-w-0">
+                                <div class="flex items-start gap-2.5">
                                     <div class="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-sm shrink-0">
                                         <i class="fa-solid ${iconHeader}"></i>
                                     </div>
@@ -2849,42 +2876,38 @@
                                         <div class="flex gap-1.5 items-center mb-1 flex-wrap">
                                             <span class="text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${t.type === 'Misi' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}">${t.type}</span>
                                             <span class="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">${t.category}</span>
-                                            ${isAllFinished ? '<span class="text-[8px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-black uppercase"><i class="fa-solid fa-check"></i> TUNTAS</span>' : ''}
-                                            ${isLocked ? '<span class="text-[8px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-black uppercase"><i class="fa-solid fa-lock"></i> TERKUNCI</span>' : ''}
+                                            ${isAllFinished ? '<span class="text-[8px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full font-black uppercase">TUNTAS</span>' : ''}
+                                            ${t.is_locked ? '<span class="text-[8px] bg-red-100 text-red-800 px-2 py-0.5 rounded-full font-black uppercase"><i class="fa-solid fa-lock"></i> TERKUNCI</span>' : ''}
                                         </div>
                                         <h5 class="font-black text-xs text-slate-800 truncate" title="${t.title}">${t.title}</h5>
                                         <p class="text-[9px] text-gray-500 font-bold mt-0.5"><i class="fa-regular fa-clock mr-0.5"></i> Target: ${t.due_date}</p>
                                     </div>
                                 </div>
                                 <div class="flex gap-1 items-center shrink-0">
-                                    <!-- Tombol Lock Grade Baru -->
-                                    <button onclick="event.stopPropagation(); ${isAllFinished ? `toggleTaskLock('${t.id}')` : ''}" title="${lockBtnTitle}" class="p-2 rounded-xl transition flex items-center justify-center ${lockBtnClass}">
-                                        <i class="fa-solid ${isLocked ? 'fa-lock' : 'fa-lock-open'} text-[10px]"></i>
-                                    </button>
-                                    <button onclick="event.stopPropagation(); bukaFormEditTugas('${t.id}')" class="text-blue-500 hover:bg-blue-50 p-2 rounded-xl transition"><i class="fa-solid fa-pen text-xs"></i></button>
-                                    <button onclick="event.stopPropagation(); hapusTugas('${t.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded-xl transition"><i class="fa-solid fa-trash text-xs"></i></button>
-                                    <span class="w-6 h-6 flex items-center justify-center text-slate-400 bg-slate-50 rounded-lg ml-1 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}"><i class="fa-solid fa-chevron-down text-[10px]"></i></span>
+                                    <button onclick="event.stopPropagation(); toggleLockTask('${t.id}')" class="text-${t.is_locked ? 'red' : 'green'}-500 hover:bg-slate-100 p-2 rounded-xl transition" title="${t.is_locked ? 'Buka Kunci' : 'Kunci Tugas & Nilai'}"><i class="fa-solid fa-${t.is_locked ? 'lock' : 'lock-open'} text-xs"></i></button>
+                                    ${t.is_locked ? '' : `<button onclick="event.stopPropagation(); bukaFormEditTugas('${t.id}')" class="text-blue-500 hover:bg-blue-50 p-2 rounded-xl transition"><i class="fa-solid fa-pen text-xs"></i></button>`}
+                                    ${t.is_locked ? '' : `<button onclick="event.stopPropagation(); hapusTugas('${t.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded-xl transition"><i class="fa-solid fa-trash text-xs"></i></button>`}
+                                    <span class="w-6 h-6 flex items-center justify-center text-slate-400 bg-slate-50 rounded-lg ml-1"><i class="fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'} text-[10px]"></i></span>
                                 </div>
                             </div>
 
-                            <!-- WRAPPER COLLAPSE MODE ANIMATION -->
-                            <div class="transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[3000px] opacity-100 mt-3' : 'max-h-0 opacity-0 mt-0'}">
-                                <!-- PROGRES BAR -->
-                                <div>
-                                    <div class="flex justify-between text-[9px] font-black text-gray-500 uppercase mb-1">
-                                        <span>Kemajuan Belajar: ${completionRate}%</span>
-                                        <span>${completed}/${totalAssigned} Siswa Kumpul</span>
-                                    </div>
-                                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                                        <div class="h-full transition-all duration-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] ${t.type === 'Misi' ? 'bg-gradient-to-r from-amber-400 to-yellow-500' : 'bg-gradient-to-r from-blue-500 to-indigo-600'}" style="width: ${completionRate}%"></div>
-                                    </div>
+                            <!-- PROGRES BAR -->
+                            <div class="mt-3">
+                                <div class="flex justify-between text-[9px] font-black text-gray-500 uppercase mb-1">
+                                    <span>Kemajuan Belajar: ${completionRate}%</span>
+                                    <span>${completed}/${totalAssigned} Siswa Kumpul</span>
                                 </div>
+                                <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                    <div class="h-full transition-all duration-500 shadow-[0_0_8px_rgba(59,130,246,0.5)] ${t.type === 'Misi' ? 'bg-gradient-to-r from-amber-400 to-yellow-500' : 'bg-gradient-to-r from-blue-500 to-indigo-600'}" style="width: ${completionRate}%"></div>
+                                </div>
+                            </div>
 
-                                <!-- LEMBAR PENILAIAN INDIVIDUAL -->
-                                <div class="mt-4 space-y-3 bg-slate-50 p-3 rounded-2xl border border-slate-150">
+                            <!-- LEMBAR PENILAIAN INDIVIDUAL (CONDITIONAL EXPAND) -->
+                            ${isExpanded ? `
+                                <div class="mt-4 space-y-3 bg-slate-50 p-3 rounded-2xl border border-slate-150 card-pop">
                                     <div class="flex justify-between items-center pb-2 border-b border-gray-200">
                                         <span class="text-[9px] font-black text-slate-500 uppercase flex items-center gap-1.5"><i class="fa-solid fa-clipboard-check text-blue-600"></i> Nilai & Verifikasi Siswa:</span>
-                                        ${!isLocked ? `<button onclick="markAllTaskSubmissionsAsDone('${t.id}')" class="bg-sky-600 hover:bg-sky-500 text-white font-black text-[9px] px-2.5 py-1 rounded-lg border-b-2 border-sky-800 transition active:scale-95 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Semua Lulus</button>` : `<span class="text-[9px] font-black text-red-600 bg-red-100 px-2 py-1 rounded-lg border border-red-200"><i class="fa-solid fa-lock"></i> NILAI DIKUNCI</span>`}
+                                        ${t.is_locked ? '<span class="text-[9px] font-black text-red-600 uppercase bg-red-50 px-2 py-1 rounded border border-red-200"><i class="fa-solid fa-lock-keyhole"></i> Nilai Terkunci</span>' : `<button onclick="markAllTaskSubmissionsAsDone('${t.id}')" class="bg-sky-600 hover:bg-sky-500 text-white font-black text-[9px] px-2.5 py-1 rounded-lg border-b-2 border-sky-800 transition active:scale-95 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Semua Lulus</button>`}
                                     </div>
 
                                     <div class="space-y-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
@@ -2900,17 +2923,12 @@
 
                                             const scoreStyle = (currentScore !== '' && Number(currentScore) < 70) ? "border-red-400 text-red-600 bg-red-50 font-black" : "border-gray-200 text-gray-800 bg-white font-bold";
 
-                                            // Penyesuaian Style saat isLocked = true
-                                            const disabledAttr = isLocked ? 'disabled' : '';
-                                            const finalScoreClass = isLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200 shadow-none' : scoreStyle;
-                                            const finalSelectClass = isLocked ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200' : selectColor;
-
                                             return `
                                                 <div class="flex justify-between items-center py-2 text-xs gap-2">
-                                                    <span class="font-bold text-slate-700 truncate flex-1 ${isLocked ? 'opacity-60' : ''}">${s.name}</span>
+                                                    <span class="font-bold text-slate-700 truncate flex-1">${s.name}</span>
                                                     <div class="flex items-center gap-1.5 shrink-0">
-                                                        <input type="number" value="${currentScore}" placeholder="Nilai" onblur="updateSubmissionScore('${t.id}', '${s.id}', this.value)" class="w-14 p-1.5 text-center text-xs rounded-lg border ${finalScoreClass} focus:outline-none focus:border-blue-500 transition-colors" ${disabledAttr}>
-                                                        <select onchange="updateSubmissionStatus('${t.id}', '${s.id}', this.value)" class="p-1.5 text-[10px] rounded-lg border font-bold focus:outline-none ${finalSelectClass} transition-colors" ${disabledAttr}>
+                                                        <input type="number" value="${currentScore}" placeholder="Nilai" ${t.is_locked ? 'disabled' : ''} onblur="updateSubmissionScore('${t.id}', '${s.id}', this.value)" class="w-14 p-1.5 text-center text-xs rounded-lg border ${scoreStyle} focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-100">
+                                                        <select onchange="updateSubmissionStatus('${t.id}', '${s.id}', this.value)" ${t.is_locked ? 'disabled' : ''} class="p-1.5 text-[10px] rounded-lg border font-bold focus:outline-none ${selectColor} disabled:opacity-50">
                                                             <option value="Belum Kumpul" ${currentStatus === 'Belum Kumpul' ? 'selected' : ''}>🔴 Belum</option>
                                                             <option value="Menunggu Verifikasi" ${currentStatus === 'Menunggu Verifikasi' ? 'selected' : ''}>🟡 Verif</option>
                                                             <option value="Sudah Kumpul" ${currentStatus === 'Sudah Kumpul' ? 'selected' : ''}>🟢 Selesai</option>
@@ -2922,12 +2940,12 @@
                                         }).join('')}
                                     </div>
                                 </div>
+                            ` : ''}
 
-                                <!-- STATISTIK AKUMULATIF TUGAS -->
-                                <div class="mt-3 pt-3 border-t border-dashed border-gray-150 flex justify-between items-center text-[10px] font-black uppercase text-gray-500">
-                                    <span>Akumulasi Nilai: <span class="text-blue-600 font-extrabold">${totalScoreVal}</span></span>
-                                    <span>Rata-Rata Kelas: <span class="px-2 py-0.5 rounded-md ${averageScoreVal < 70 ? 'bg-red-100 text-red-700' : 'bg-sky-100 text-sky-700'}">${averageScoreVal}</span></span>
-                                </div>
+                            <!-- STATISTIK AKUMULATIF TUGAS -->
+                            <div class="mt-3 pt-3 border-t border-dashed border-gray-150 flex justify-between items-center text-[10px] font-black uppercase text-gray-500">
+                                <span>Akumulasi Nilai: <span class="text-blue-600 font-extrabold">${totalScoreVal}</span></span>
+                                <span>Rata-Rata Kelas: <span class="px-2 py-0.5 rounded-md ${averageScoreVal < 70 ? 'bg-red-100 text-red-700' : 'bg-sky-100 text-sky-700'}">${averageScoreVal}</span></span>
                             </div>
                         </div>
                     `;
@@ -2952,57 +2970,38 @@
             }
         }
 
-        function filterTaskTab(filter) {
+        async function toggleLockTask(id) {
             playSfx('click');
-            activeTaskTabFilter = filter;
-            renderTabTugas(document.getElementById('admin-panel-content'));
-        }
+            const t = tasks.find(x => x.id === id);
+            if (!t) return;
 
-        function filterTaskCategory(category) {
-            playSfx('click');
-            activeTaskCategoryFilter = category;
-            renderTabTugas(document.getElementById('admin-panel-content'));
-        }
-
-        function toggleTaskGrading(taskId) {
-            playSfx('click');
-            if (expandedTasks.includes(taskId)) {
-                expandedTasks = expandedTasks.filter(id => id !== taskId);
-            } else {
-                expandedTasks.push(taskId);
-            }
-            saveLocalBackup();
-            renderTabTugas(document.getElementById('admin-panel-content'));
-        }
-
-        async function toggleTaskLock(taskId) {
-            const task = tasks.find(t => t.id === taskId);
-            if (!task) return;
-
-            const isLocking = !task.isLocked;
-            const actionText = isLocking ? "MENGUNCI" : "MEMBUKA KUNCI";
-            const warningText = isLocking ? "Setelah dikunci, nilai tidak bisa diubah oleh siapapun sampai gembok dibuka kembali." : "Guru dapat kembali mengubah nilai siswa.";
-
-            const conf = await showCustomConfirm(`${actionText} NILAI TUGAS`, `Apakah Anda yakin ingin ${actionText.toLowerCase()} tugas "${task.title}"? ${warningText}`);
+            const isLocking = !t.is_locked;
+            const msg = isLocking 
+                ? "Tugas ini akan dikunci. Nilai siswa yang telah disetujui tidak akan bisa diubah maupun dihapus secara tidak disengaja. Setuju?" 
+                : "Tugas ini akan dibuka kuncinya. Pengeditan nilai akan kembali diizinkan.";
+            
+            const conf = await showCustomConfirm(isLocking ? "Finalisasi Nilai (Kunci Tugas)" : "Buka Kunci Nilai", msg);
             if (!conf) return;
 
-            playSfx('click');
-            task.isLocked = isLocking;
+            t.is_locked = isLocking;
             saveLocalBackup();
             renderTabTugas(document.getElementById('admin-panel-content'));
             playSfx('success');
-            
-            await postToCloud("tasks", "upsert", task);
-            showPopup(`Nilai ${isLocking ? 'Terkunci' : 'Terbuka'}`, `Berhasil ${isLocking ? 'mengunci' : 'membuka kunci'} tugas akademik.`, isLocking ? "fa-lock" : "fa-lock-open", isLocking ? "text-red-500" : "text-emerald-500", isLocking ? "bg-red-50" : "bg-emerald-50");
+            await postToCloud("tasks", "upsert", t);
+            showPopup("Status Nilai Diperbarui", isLocking ? "Tugas berhasil dikunci." : "Tugas berhasil dibuka.", isLocking ? "fa-lock" : "fa-lock-open", "text-sky-500", "bg-sky-50");
+        }
+
+        function filterTaskTab(filter) {
+            playSfx('click'); activeTaskTabFilter = filter; renderTabTugas(document.getElementById('admin-panel-content'));
+        }
+        function filterTaskCategory(category) {
+            playSfx('click'); activeTaskCategoryFilter = category; renderTabTugas(document.getElementById('admin-panel-content'));
+        }
+        function toggleTaskGrading(taskId) {
+            expandedTaskId = (expandedTaskId === taskId) ? null : taskId; renderTabTugas(document.getElementById('admin-panel-content'));
         }
 
         async function markAllTaskSubmissionsAsDone(taskId) {
-            const task = tasks.find(x => x.id === taskId);
-            if (task && task.isLocked) {
-                showPopup("Terkunci", "Nilai tugas ini telah dikunci dan tidak dapat diubah secara masal.", "fa-lock", "text-red-500", "bg-red-50");
-                return;
-            }
-
             const conf = await showCustomConfirm("Tandai Semua Selesai", "Yakin ingin menandai seluruh siswa selesai mengumpulkan tugas ini dengan nilai 80?");
             if (!conf) return;
 
@@ -3012,37 +3011,23 @@
                 const s = students[i];
                 let subm = taskSubmissions.find(sub => sub.task_id === taskId && sub.student_id === s.id);
                 if (!subm) {
-                    subm = {
-                        id: 'S_' + taskId + '_' + s.id,
-                        task_id: taskId,
-                        student_id: s.id,
-                        status: 'Sudah Kumpul',
-                        score: 80
-                    };
+                    subm = { id: 'S_' + taskId + '_' + s.id, task_id: taskId, student_id: s.id, status: 'Sudah Kumpul', score: 80 };
                     taskSubmissions.push(subm);
                 } else {
-                    subm.status = 'Sudah Kumpul';
-                    subm.score = 80;
+                    subm.status = 'Sudah Kumpul'; subm.score = 80;
                 }
                 await postToCloud("task_submissions", "upsert", subm);
             }
 
-            saveLocalBackup();
-            updateClassAnalytics();
-            renderTabTugas(document.getElementById('admin-panel-content'));
-            playSfx('success');
-            showPopup("Semua Selesai!", "Berhasil menandai seluruh siswa sebagai tuntas mengerjakan.", "fa-check-double", "text-sky-500", "bg-sky-50");
+            saveLocalBackup(); updateClassAnalytics(); renderTabTugas(document.getElementById('admin-panel-content'));
+            playSfx('success'); showPopup("Semua Selesai!", "Berhasil menandai seluruh siswa sebagai tuntas mengerjakan.", "fa-check-double", "text-sky-500", "bg-sky-50");
         }
 
         function bukaFormTambahTugas() {
             const el = document.getElementById('form-tugas-box');
             const list = document.getElementById('tugas-list-area');
             if (el) {
-                if (isDesktopMode) {
-                    el.classList.remove('hidden');
-                    return;
-                }
-                
+                if (isDesktopMode) { el.classList.remove('hidden'); return; }
                 el.classList.toggle('hidden');
                 if (!el.classList.contains('hidden')) {
                     document.getElementById('in-tugas-id').value = '';
@@ -3058,12 +3043,8 @@
         function batalEditTugasForm() {
             playSfx('click');
             if (isDesktopMode) {
-                document.getElementById('in-tugas-id').value = '';
-                document.getElementById('in-tugas-title').value = '';
-                document.getElementById('in-tugas-desc').value = '';
-                return;
+                document.getElementById('in-tugas-id').value = ''; document.getElementById('in-tugas-title').value = ''; document.getElementById('in-tugas-desc').value = ''; return;
             }
-            
             document.getElementById('form-tugas-box').classList.add('hidden');
             document.getElementById('tugas-list-area').classList.remove('hidden');
         }
@@ -3076,55 +3057,30 @@
             const type = document.getElementById('in-tugas-type').value;
             const category = document.getElementById('in-tugas-category').value;
 
-            if (title === "" || desc === "") {
-                showPopup("Data Kosong", "Judul & Rincian tugas wajib diisi!", "fa-circle-xmark", "text-red-500", "bg-red-50");
-                return;
-            }
-            
-            // Pertahankan nilai isLocked jika ini adalah operasi Edit
-            const existingTask = tasks.find(x => x.id === id);
-            const preservedLockState = existingTask ? (existingTask.isLocked || false) : false;
+            if (title === "" || desc === "") { showPopup("Data Kosong", "Judul & Rincian tugas wajib diisi!", "fa-circle-xmark", "text-red-500", "bg-red-50"); return; }
 
             const newTugas = {
                 id: id ? id : 'T_' + Date.now(),
-                title,
-                description: desc,
-                due_date: date,
-                type,
-                category,
-                isLocked: preservedLockState
+                title, description: desc, due_date: date, type, category,
+                is_locked: false // Default tugas baru tidak terkunci
             };
 
             const index = tasks.findIndex(x => x.id === newTugas.id);
-            const isNewTask = index < 0;
-
-            if (!isNewTask) {
-                tasks[index] = newTugas;
-            } else {
+            if (index >= 0) { tasks[index] = newTugas; } else {
                 tasks.push(newTugas);
+                students.forEach(s => {
+                    const submissionId = 'S_' + newTugas.id + '_' + s.id;
+                    const exists = taskSubmissions.some(x => x.id === submissionId);
+                    if (!exists) taskSubmissions.push({ id: submissionId, task_id: newTugas.id, student_id: s.id, status: 'Belum Kumpul', score: null });
+                });
             }
 
-            saveLocalBackup();
-            playSfx('success');
+            saveLocalBackup(); playSfx('success');
             await postToCloud("tasks", "upsert", newTugas);
             
-            // HANYA buat submission baru jika belum ada. JANGAN overwrite data yang sudah dinilai! (Idempotent approach)
             for (let i = 0; i < students.length; i++) {
                 const s = students[i];
-                const submissionId = 'S_' + newTugas.id + '_' + s.id;
-                const existingSubm = taskSubmissions.find(x => x.id === submissionId);
-                
-                if (!existingSubm) {
-                    const newSubm = {
-                        id: submissionId,
-                        task_id: newTugas.id,
-                        student_id: s.id,
-                        status: 'Belum Kumpul',
-                        score: null
-                    };
-                    taskSubmissions.push(newSubm);
-                    await postToCloud("task_submissions", "upsert", newSubm);
-                }
+                await postToCloud("task_submissions", "upsert", { id: 'S_' + newTugas.id + '_' + s.id, task_id: newTugas.id, student_id: s.id, status: 'Belum Kumpul', score: null });
             }
             updateClassAnalytics();
             
@@ -3139,9 +3095,7 @@
             const t = tasks.find(x => x.id === id);
             if (!t) return;
             document.getElementById('form-tugas-box').classList.remove('hidden');
-            if (!isDesktopMode) {
-                document.getElementById('tugas-list-area').classList.add('hidden');
-            }
+            if (!isDesktopMode) document.getElementById('tugas-list-area').classList.add('hidden');
             document.getElementById('in-tugas-id').value = t.id;
             document.getElementById('in-tugas-title').value = t.title;
             document.getElementById('in-tugas-desc').value = t.description;
@@ -3156,101 +3110,55 @@
 
             tasks = tasks.filter(t => t.id !== id);
             taskSubmissions = taskSubmissions.filter(s => s.task_id !== id);
-            saveLocalBackup();
-            switchAdminTab('tugas');
-            playSfx('fail');
+            saveLocalBackup(); switchAdminTab('tugas'); playSfx('fail');
             await postToCloud("tasks", "delete", null, id);
             updateClassAnalytics();
         }
 
         async function updateSubmissionStatus(taskId, studentId, newStatus) {
-            const task = tasks.find(x => x.id === taskId);
-            if (task && task.isLocked) {
-                showPopup("Terkunci", "Nilai tugas ini telah dikunci dan tidak dapat diubah.", "fa-lock", "text-red-500", "bg-red-50");
-                return;
-            }
-            
             playSfx('click');
             let subm = taskSubmissions.find(s => s.task_id === taskId && s.student_id === studentId);
-            
             if (!subm) {
-                subm = {
-                    id: 'S_' + taskId + '_' + studentId,
-                    task_id: taskId,
-                    student_id: studentId,
-                    status: newStatus,
-                    score: null
-                };
+                subm = { id: 'S_' + taskId + '_' + studentId, task_id: taskId, student_id: studentId, status: newStatus, score: null };
                 taskSubmissions.push(subm);
             } else {
                 subm.status = newStatus;
             }
-
-            saveLocalBackup();
-            updateClassAnalytics();
+            saveLocalBackup(); updateClassAnalytics();
             await postToCloud("task_submissions", "upsert", subm);
         }
 
         async function updateSubmissionScore(taskId, studentId, newScore) {
-            const task = tasks.find(x => x.id === taskId);
-            if (task && task.isLocked) {
-                showPopup("Terkunci", "Nilai tugas ini telah dikunci dan tidak dapat diubah.", "fa-lock", "text-red-500", "bg-red-50");
-                // Reset input UI ke nilai asli (atau biarkan re-render memperbaikinya)
-                renderTabTugas(document.getElementById('admin-panel-content'));
-                return;
-            }
-            
             playSfx('click');
             let subm = taskSubmissions.find(s => s.task_id === taskId && s.student_id === studentId);
             const scoreVal = newScore !== "" ? Number(newScore) : null;
-            
             let statusVal = 'Belum Kumpul';
-            if (scoreVal !== null) {
-                statusVal = scoreVal >= 70 ? 'Sudah Kumpul' : 'Remedial';
-            }
+            if (scoreVal !== null) statusVal = scoreVal >= 70 ? 'Sudah Kumpul' : 'Remedial';
             
             if (!subm) {
-                subm = {
-                    id: 'S_' + taskId + '_' + studentId,
-                    task_id: taskId,
-                    student_id: studentId,
-                    status: statusVal,
-                    score: scoreVal
-                };
+                subm = { id: 'S_' + taskId + '_' + studentId, task_id: taskId, student_id: studentId, status: statusVal, score: scoreVal };
                 taskSubmissions.push(subm);
             } else {
-                subm.score = scoreVal;
-                subm.status = statusVal;
+                subm.score = scoreVal; subm.status = statusVal;
             }
-
-            saveLocalBackup();
-            updateClassAnalytics();
+            saveLocalBackup(); updateClassAnalytics();
             await postToCloud("task_submissions", "upsert", subm);
         }
 
+        // MODUL: Pengaturan Identitas & Rekap Nilai
         function renderTabRekapNilai(container) {
             let selectedCategory = document.getElementById('rekap-category-filter')?.value || 'PKN';
             const catTasks = tasks.filter(t => t.category === selectedCategory);
             const studentAverages = [];
 
             students.forEach(s => {
-                let sum = 0;
-                let count = 0;
+                let sum = 0; let count = 0;
                 catTasks.forEach(t => {
                     const subm = taskSubmissions.find(sub => sub.task_id === t.id && sub.student_id === s.id);
-                    if (subm && subm.score !== null && subm.score !== undefined && subm.score !== '') {
-                        sum += Number(subm.score);
-                        count++;
-                    }
+                    if (subm && subm.score !== null && subm.score !== undefined && subm.score !== '') { sum += Number(subm.score); count++; }
                 });
                 const avg = count > 0 ? Math.round((sum / count) * 10) / 10 : 0;
-                studentAverages.push({
-                    id: s.id,
-                    name: s.name,
-                    gender: s.gender,
-                    average: avg,
-                    tasksGraded: count
-                });
+                studentAverages.push({ id: s.id, name: s.name, gender: s.gender, average: avg, tasksGraded: count });
             });
 
             const rankedStudents = [...studentAverages].sort((a,b) => b.average - a.average);
@@ -3270,7 +3178,6 @@
                         <option value="LAINNYA" ${selectedCategory === 'LAINNYA' ? 'selected' : ''}>LAINNYA</option>
                     </select>
                 </div>
-
                 <div class="space-y-3">
                     <div class="overflow-x-auto bg-white rounded-2xl border-2 border-indigo-100 p-2 shadow-sm">
                         <table class="w-full text-xs text-left text-gray-700 font-semibold border-collapse">
@@ -3287,12 +3194,8 @@
 
             rankedStudents.forEach((student, idx) => {
                 let medalHtml = `${idx + 1}`;
-                if (idx === 0) medalHtml = '🥇';
-                if (idx === 1) medalHtml = '🥈';
-                if (idx === 2) medalHtml = '🥉';
-
+                if (idx === 0) medalHtml = '🥇'; if (idx === 1) medalHtml = '🥈'; if (idx === 2) medalHtml = '🥉';
                 const highlightColor = student.average < 70 ? "text-red-600 font-extrabold" : "text-green-600 font-extrabold";
-
                 html += `
                     <tr class="hover:bg-indigo-50/30 border-b border-gray-100">
                         <td class="p-2 text-center font-black text-xs">${medalHtml}</td>
@@ -3305,20 +3208,11 @@
                     </tr>
                 `;
             });
-
-            html += `
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-
+            html += `</tbody></table></div></div>`;
             container.innerHTML = html;
         }
 
-        function changeRekapCategoryView() {
-            renderTabRekapNilai(document.getElementById('admin-panel-content'));
-        }
+        function changeRekapCategoryView() { renderTabRekapNilai(document.getElementById('admin-panel-content')); }
 
         function renderTabIdentitas(container) {
             let html = `
@@ -3368,18 +3262,59 @@
             appSettings.kepsek_nip = document.getElementById('set-sch-kepsek-nip').value.trim();
             appSettings.app_version = document.getElementById('set-sch-ver').value.trim();
 
-            saveLocalBackup();
-            updateDynamicSchoolIdentity();
-            playSfx('success');
-            
-            await postToCloud("app_settings", "upsert", {
-                key: 'school_identity',
-                value: appSettings
-            });
-
+            saveLocalBackup(); updateDynamicSchoolIdentity(); playSfx('success');
+            await postToCloud("app_settings", "upsert", { key: 'school_identity', value: appSettings });
             showPopup("Penyimpanan Sukses!", "Identitas sekolah dan lencana aplikasi berhasil diperbarui secara dinamis.", "fa-sliders", "text-pink-500", "bg-pink-100");
         }
+async function postToCloud(table, action, payload, id = null) {
 
+    toggleCloudSync(true);
+
+    try {
+
+        let result;
+
+        if (action === "upsert") {
+
+            result = await supabaseClient
+
+                .from(table)
+
+                .upsert(payload);
+
+        }
+
+        if (action === "delete") {
+
+            result = await supabaseClient
+
+                .from(table)
+
+                .delete()
+
+                .eq("id", id);
+
+        }
+
+        if (result.error) {
+
+            console.error("TABLE :", table);
+
+            console.error("PAYLOAD :", payload);
+
+            console.error(result.error);
+
+        }
+
+    } finally {
+
+        toggleCloudSync(false);
+
+    }
+
+}
+
+        // MODUL: Laporan & Cetak PDF (Window.Print)
         function renderTabRapor(container) {
             let html = `
                 <h4 class="font-black text-xs text-blue-800 uppercase tracking-wider mb-2">Cetak Rapor & Rekapitulasi Resmi</h4>
@@ -3457,17 +3392,16 @@
                         .page { padding: 40px; box-sizing: border-box; width: 100%; min-height: 100vh; }
                         .page-break { page-break-after: always; }
                         .page-break:last-child { page-break-after: auto; }
-                        .header { text-align: center; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 15px; }
+                        .header { text-align: center; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 20px; }
                         .title { font-size: 20px; font-weight: bold; margin: 0; }
                         .subtitle { font-size: 14px; margin: 5px 0 0 0; }
-                        .meta { margin-bottom: 15px; width: 100%; border-collapse: collapse; }
+                        .meta { margin-bottom: 20px; width: 100%; border-collapse: collapse; }
                         .meta td { padding: 4px 0; font-size: 13px; }
-                        .score-box { border: 1px solid #000; padding: 12px; text-align: center; margin-bottom: 15px; }
-                        .section-title { font-size: 13px; font-weight: bold; margin-top: 20px; border-bottom: 1px solid #000; padding-bottom: 3px; text-transform: uppercase; }
-                        .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                        .table th, .table td { border: 1px solid #000; padding: 6px; text-align: left; font-size: 12px; }
+                        .score-box { border: 1px solid #000; padding: 15px; text-align: center; margin-bottom: 20px; }
+                        .table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        .table th, .table td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 12px; }
                         .table th { background-color: #f2f2f2; }
-                        .footer { margin-top: 40px; display: flex; justify-content: space-between; }
+                        .footer { margin-top: 50px; display: flex; justify-content: space-between; }
                         .sig { text-align: center; width: 250px; font-size: 12px; }
                         @media print { body { padding: 0; } }
                     </style>
@@ -3479,106 +3413,43 @@
                 const myLogs = logs.filter(l => l.student_id === s.id);
                 const balance = s.points_good - s.points_bad;
                 const predikat = balance >= 50 ? "AMAT BAIK" : (balance >= 0 ? "CUKUP BAIK" : "BUTUH PEMBINAAN KHUSUS");
-                
-                const myTugas = tasks.filter(t => t.type === 'Tugas');
-                const myMisi = tasks.filter(t => t.type === 'Misi');
-
-                let htmlTugas = '';
-                if (myTugas.length === 0) {
-                    htmlTugas = `<tr><td colspan="4" style="text-align:center;">Belum ada penugasan akademik</td></tr>`;
-                } else {
-                    htmlTugas = myTugas.map(t => {
-                        const sub = taskSubmissions.find(x => x.task_id === t.id && x.student_id === s.id);
-                        const score = (sub && sub.score !== null && sub.score !== undefined) ? sub.score : '-';
-                        const status = sub ? sub.status : 'Belum Kumpul';
-                        return `<tr><td width="20%">${t.category}</td><td width="45%">${t.title}</td><td width="20%">${status}</td><td width="15%" style="text-align:center; font-weight:bold;">${score}</td></tr>`;
-                    }).join('');
-                }
-
-                let htmlMisi = '';
-                if (myMisi.length === 0) {
-                    htmlMisi = `<tr><td colspan="4" style="text-align:center;">Belum ada misi karakter</td></tr>`;
-                } else {
-                    htmlMisi = myMisi.map(m => {
-                        const sub = taskSubmissions.find(x => x.task_id === m.id && x.student_id === s.id);
-                        const score = (sub && sub.score !== null && sub.score !== undefined) ? sub.score : '-';
-                        const status = sub ? sub.status : 'Belum Kumpul';
-                        return `<tr><td width="20%">${m.category}</td><td width="45%">${m.title}</td><td width="20%">${status}</td><td width="15%" style="text-align:center; font-weight:bold;">${score}</td></tr>`;
-                    }).join('');
-                }
-
-                let htmlLogs = '';
-                if (myLogs.length === 0) {
-                    htmlLogs = `<tr><td colspan="4" style="text-align:center;">Belum ada riwayat karakter</td></tr>`;
-                } else {
-                    htmlLogs = myLogs.map(l => `
-                        <tr>
-                            <td width="15%">${l.timestamp}</td>
-                            <td width="15%">${l.type}</td>
-                            <td width="55%">${l.description}</td>
-                            <td width="15%" style="text-align:center;">${l.type === 'Kebaikan' ? '+' : '-'}${l.points} Poin</td>
-                        </tr>
-                    `).join('');
-                }
 
                 htmlContent += `
                     <div class="page page-break">
                         <div class="header">
-                            <div class="title">RAPOR KEMAJUAN BELAJAR & KARAKTER</div>
+                            <div class="title">RAPOR PERKEMBANGAN KARAKTER SISWA</div>
                             <div class="subtitle">${(appSettings.school_name || "SD NEGERI 4 RAMBUTAN").toUpperCase()} - ${(appSettings.class_name || "KELAS 5").toUpperCase()}</div>
                         </div>
-                        
                         <table class="meta">
                             <tr><td width="25%"><b>Nama Siswa</b></td><td width="3%">:</td><td width="72%">${s.name}</td></tr>
                             <tr><td><b>Jenis Kelamin</b></td><td>:</td><td>${s.gender === 'Putra' ? 'Laki-Laki' : 'Perempuan'}</td></tr>
                             <tr><td><b>Tanggal Cetak</b></td><td>:</td><td>${new Date().toLocaleDateString('id-ID')}</td></tr>
                         </table>
-                        
                         <div class="score-box">
                             <div style="font-size: 13px; margin-bottom: 5px;">AKUMULASI PENILAIAN KARAKTER</div>
                             <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">Kebaikan: ${s.points_good} Pts | Pelanggaran: ${s.points_bad} Pts</div>
                             <div style="font-size: 14px; letter-spacing: 1px;">PREDIKAT KARAKTER AKHIR: <b>${predikat}</b></div>
                         </div>
-
-                        <div class="section-title">A. PENILAIAN AKADEMIK (KOGNITIF)</div>
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>Mata Pelajaran</th>
-                                    <th>Judul Tugas / Ulangan</th>
-                                    <th>Status Penyelesaian</th>
-                                    <th style="text-align:center;">Nilai Angka</th>
+                                    <th width="15%">Tanggal</th>
+                                    <th width="15%">Jenis Poin</th>
+                                    <th width="50%">Deskripsi Aktivitas</th>
+                                    <th width="20%">Skor Perubahan</th>
                                 </tr>
                             </thead>
-                            <tbody>${htmlTugas}</tbody>
+                            <tbody>
+                                ${myLogs.map(l => `
+                                    <tr>
+                                        <td>${l.timestamp}</td>
+                                        <td>${l.type}</td>
+                                        <td>${l.description}</td>
+                                        <td>${l.type === 'Kebaikan' ? '+' : '-'}${l.points} Poin</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
                         </table>
-
-                        <div class="section-title">B. PENYELESAIAN MISI KARAKTER (AFEKTIF/PSIKOMOTORIK)</div>
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Kategori Misi</th>
-                                    <th>Tantangan / Proyek</th>
-                                    <th>Status Penyelesaian</th>
-                                    <th style="text-align:center;">Skor Capaian</th>
-                                </tr>
-                            </thead>
-                            <tbody>${htmlMisi}</tbody>
-                        </table>
-                        
-                        <div class="section-title">C. RIWAYAT CATATAN HARIAN KARAKTER</div>
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Waktu</th>
-                                    <th>Jenis Poin</th>
-                                    <th>Deskripsi Tindakan</th>
-                                    <th style="text-align:center;">Perubahan Poin</th>
-                                </tr>
-                            </thead>
-                            <tbody>${htmlLogs}</tbody>
-                        </table>
-
                         <div class="footer">
                             <div class="sig">
                                 Mengetahui,<br>Kepala Sekolah<br><br><br><br><b>${appSettings.kepsek_name || 'H. Mulyadi, M.Pd.'}</b><br>NIP. ${appSettings.kepsek_nip || '-'}
@@ -3597,9 +3468,13 @@
             `;
             
             const printWin = window.open('', '_blank', 'width=800,height=600');
-            printWin.document.open();
-            printWin.document.write(htmlContent);
-            printWin.document.close();
+            if (printWin) {
+                printWin.document.open();
+                printWin.document.write(htmlContent);
+                printWin.document.close();
+            } else {
+                showPopup("Popup Diblokir", "Mohon izinkan pop-ups untuk domain ini lalu coba lagi.", "fa-ban", "text-red-500", "bg-red-50");
+            }
         }
 
         function cetakRekapBulananLandscape() {
@@ -3701,9 +3576,11 @@
             `;
 
             const printWin = window.open('', '_blank', 'width=1000,height=700');
-            printWin.document.open();
-            printWin.document.write(htmlContent);
-            printWin.document.close();
+            if(printWin) {
+                printWin.document.open(); printWin.document.write(htmlContent); printWin.document.close();
+            } else {
+                showPopup("Popup Diblokir", "Mohon izinkan pop-ups untuk domain ini lalu coba lagi.", "fa-ban", "text-red-500", "bg-red-50");
+            }
         }
 
         function cetakRekapNilaiAkademikLandscape() {
@@ -3796,187 +3673,11 @@
             `;
 
             const printWin = window.open('', '_blank', 'width=1100,height=700');
-            printWin.document.open();
-            printWin.document.write(htmlContent);
-            printWin.document.close();
-        }
-
-        function bukaFormTambahSiswa() {
-            const box = document.getElementById('form-siswa-box');
-            if (box) {
-                box.classList.toggle('hidden');
-                document.getElementById('in-siswa-id').value = '';
-                document.getElementById('in-siswa-name').value = '';
-                document.getElementById('in-siswa-good').value = '0';
-                document.getElementById('in-siswa-bad').value = '0';
-                document.getElementById('in-siswa-photo-data').value = '';
-                document.getElementById('in-siswa-photo').value = '';
-                document.getElementById('preview-photo').classList.add('hidden');
-                document.getElementById('preview-icon').classList.remove('hidden');
-            }
-        }
-
-        function bukaFormEditSiswa(id) {
-            const s = students.find(x => x.id.toString() === id.toString());
-            if (!s) return;
-            const box = document.getElementById('form-siswa-box');
-            if (box) {
-                box.classList.remove('hidden');
-                document.getElementById('in-siswa-id').value = s.id;
-                document.getElementById('in-siswa-name').value = s.name;
-                document.getElementById('in-siswa-gender').value = s.gender;
-                document.getElementById('in-siswa-good').value = s.points_good;
-                document.getElementById('in-siswa-bad').value = s.points_bad;
-                
-                document.getElementById('in-siswa-photo').value = ''; 
-                const photoDataInput = document.getElementById('in-siswa-photo-data');
-                const previewImg = document.getElementById('preview-photo');
-                const previewIcon = document.getElementById('preview-icon');
-                
-                if (s.photo) {
-                    photoDataInput.value = s.photo;
-                    previewImg.src = s.photo;
-                    previewImg.classList.remove('hidden');
-                    previewIcon.classList.add('hidden');
-                } else {
-                    photoDataInput.value = '';
-                    previewImg.classList.add('hidden');
-                    previewIcon.classList.remove('hidden');
-                }
-            }
-        }
-
-        function handlePhotoUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function(e) {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    
-                    const MAX_WIDTH = 200;
-                    const MAX_HEIGHT = 200;
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > height) {
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
-                    } else {
-                        if (height > MAX_HEIGHT) {
-                            width *= MAX_HEIGHT / height;
-                            height = MAX_HEIGHT;
-                        }
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                    document.getElementById('in-siswa-photo-data').value = dataUrl;
-                    const previewImg = document.getElementById('preview-photo');
-                    previewImg.src = dataUrl;
-                    previewImg.classList.remove('hidden');
-                    document.getElementById('preview-icon').classList.add('hidden');
-                }
-            }
-        }
-
-        async function simpanDataSiswa() {
-            const id = document.getElementById('in-siswa-id').value;
-            const name = document.getElementById('in-siswa-name').value.trim();
-            const gender = document.getElementById('in-siswa-gender').value;
-            const ptsGood = parseInt(document.getElementById('in-siswa-good').value) || 0;
-            const ptsBad = parseInt(document.getElementById('in-siswa-bad').value) || 0;
-            const photoData = document.getElementById('in-siswa-photo-data').value;
-
-            if (name === "") {
-                showPopup("Data Kosong", "Mohon isi nama siswa yang lengkap!", "fa-circle-xmark", "text-red-500", "bg-red-50");
-                return;
-            }
-
-            let sPayload = {};
-            if (id) {
-                const index = students.findIndex(x => x.id.toString() === id.toString());
-                if (index !== -1) {
-                    students[index].name = name;
-                    students[index].gender = gender;
-                    students[index].photo = photoData;
-                    students[index].points_good = ptsGood;
-                    students[index].points_bad = ptsBad;
-                    sPayload = students[index];
-                }
+            if(printWin) {
+                printWin.document.open(); printWin.document.write(htmlContent); printWin.document.close();
             } else {
-                sPayload = {
-                    id: Date.now().toString(),
-                    name: name,
-                    gender: gender,
-                    photo: photoData,
-                    points_good: ptsGood,
-                    points_bad: ptsBad
-                };
-                students.push(sPayload);
+                showPopup("Popup Diblokir", "Mohon izinkan pop-ups untuk domain ini lalu coba lagi.", "fa-ban", "text-red-500", "bg-red-50");
             }
-
-            saveLocalBackup();
-            switchAdminTab('siswa');
-            playSfx('success');
-            await postToCloud("students", "upsert", sPayload);
-            showPopup("Siswa Tersimpan", "Data profil dan poin siswa telah direkam.", "fa-user-check", "text-sky-500", "bg-sky-50");
-        }
-
-        async function hapusSiswa(id) {
-            const conf = await showCustomConfirm("Keluarkan Siswa", "Apakah Anda yakin ingin mengeluarkan siswa ini? Seluruh riwayat akan ikut hilang.");
-            if (!conf) return;
-
-            students = students.filter(x => x.id !== id);
-            saveLocalBackup();
-            switchAdminTab('siswa');
-            playSfx('fail');
-            await postToCloud("students", "delete", null, id);
-        }
-
-        const formatRupiah = (angka) => {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
-        };
-        
-        const getTodayDate = () => {
-            const tzoffset = (new Date()).getTimezoneOffset() * 60000;
-            return (new Date(Date.now() - tzoffset)).toISOString().split('T')[0];
-        };
-
-        function showView(viewId) {
-            document.getElementById('view-login').classList.add('hidden');
-            document.getElementById('view-student').classList.add('hidden');
-            document.getElementById('view-admin').classList.add('hidden');
-            document.getElementById(viewId).classList.remove('hidden');
-        }
-
-        function logout() {
-            playSfx('click');
-            currentStudent = null;
-            document.getElementById('login-name').value = '';
-            document.getElementById('admin-pin').value = '';
-            renderDashboardStats();
-            showView('view-login');
-        }
-
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-
-        function showPopup(title, message, iconClass = "fa-star", iconColor = "text-yellow-500", bgContainer = "bg-yellow-100") {
-            document.getElementById('popup-title').innerText = title;
-            document.getElementById('popup-message').innerText = message;
-            document.getElementById('popup-icon').className = `fa-solid ${iconClass} text-4xl ${iconColor}`;
-            document.getElementById('popup-icon-box').className = `w-20 h-20 rounded-full flex items-center justify-center mx-auto -mt-14 mb-4 border-4 border-white shadow-md ${bgContainer}`;
-            openModal('modal-popup');
         }
     </script>
 </body>
