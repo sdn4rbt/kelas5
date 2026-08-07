@@ -456,6 +456,20 @@
               <div id="badge-pujian" class="text-center p-2 rounded-xl text-xs font-bold"></div>
             </div>
 
+            <!-- Tren Perilaku Anak -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white border-2 border-sky-100 rounded-2xl p-3 flex flex-col items-center text-center shadow-sm">
+                    <div class="w-10 h-10 bg-sky-50 rounded-full flex items-center justify-center text-sky-500 mb-1.5"><i class="fa-solid fa-award text-xl"></i></div>
+                    <span class="text-[9px] font-black text-gray-400 uppercase tracking-wide">Kebaikan Sering</span>
+                    <p id="student-freq-good" class="text-[10px] font-bold text-sky-700 mt-1 line-clamp-2 leading-tight">Belum ada</p>
+                </div>
+                <div class="bg-white border-2 border-amber-100 rounded-2xl p-3 flex flex-col items-center text-center shadow-sm">
+                    <div class="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center text-amber-500 mb-1.5"><i class="fa-solid fa-circle-exclamation text-xl"></i></div>
+                    <span class="text-[9px] font-black text-gray-400 uppercase tracking-wide">Pelanggaran Sering</span>
+                    <p id="student-freq-bad" class="text-[10px] font-bold text-amber-700 mt-1 line-clamp-2 leading-tight">Belum ada</p>
+                </div>
+            </div>
+
             <!-- Bagian Pengajuan Restitusi Mandiri -->
             <div class="bg-white rounded-3xl p-4 shadow-sm border-2 border-amber-100 space-y-3">
               <h4 class="font-black text-xs text-amber-800 uppercase flex items-center gap-1.5">
@@ -465,7 +479,7 @@
               <p class="text-[10px] text-gray-500">
                 Pilihlah salah satu kegiatan positif buatan Guru untuk mengurangi kesalahanmu.
               </p>
-              <div id="student-restitusi-options" class="space-y-2"></div>
+              <div id="student-restitusi-options" class="space-y-2 max-h-40 overflow-y-auto pr-1"></div>
             </div>
 
             <!-- Riwayat Aktivitas Anak -->
@@ -474,7 +488,7 @@
                 <i class="fa-solid fa-history mr-1"></i>
                 Catatan Harian Karakterku
               </h4>
-              <div id="student-logs-list" class="space-y-2"></div>
+              <div id="student-logs-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
             </div>
           </div>
 
@@ -1516,10 +1530,29 @@
         const stdLogsBox = document.getElementById("student-logs-list");
         stdLogsBox.innerHTML = "";
         const myLogs = logs.filter((l) => l.student_id === currentStudent.id);
+        
+        // Logika untuk menampilkan Kebaikan dan Pelanggaran Paling Sering
+        let freqGood = {};
+        let freqBad = {};
+        myLogs.forEach(l => {
+            // Hilangkan kalimat otomatis restitusi dari judul agar dihitung dengan akurat
+            let cleanDesc = l.description.split(' (Otomatis')[0].trim();
+            if (l.type === "Kebaikan") freqGood[cleanDesc] = (freqGood[cleanDesc] || 0) + 1;
+            else freqBad[cleanDesc] = (freqBad[cleanDesc] || 0) + 1;
+        });
+        
+        const topGoodDesc = Object.keys(freqGood).length > 0 ? Object.keys(freqGood).reduce((a, b) => freqGood[a] > freqGood[b] ? a : b) : "Belum ada rekam jejak";
+        const topBadDesc = Object.keys(freqBad).length > 0 ? Object.keys(freqBad).reduce((a, b) => freqBad[a] > freqBad[b] ? a : b) : "Bersih tanpa pelanggaran";
+        
+        const freqGoodEl = document.getElementById("student-freq-good");
+        const freqBadEl = document.getElementById("student-freq-bad");
+        if(freqGoodEl) freqGoodEl.innerText = topGoodDesc;
+        if(freqBadEl) freqBadEl.innerText = topBadDesc;
+
         if (myLogs.length === 0) {
           stdLogsBox.innerHTML = `<p class="text-xs text-gray-400 text-center py-4 font-bold">Belum ada riwayat catatan harian.</p>`;
         } else {
-          myLogs.slice(0, 5).forEach((l) => {
+          myLogs.slice(0, 10).forEach((l) => {
             const isGood = l.type === "Kebaikan";
             stdLogsBox.innerHTML += `
                         <div class="bg-white p-2.5 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
@@ -3987,13 +4020,26 @@
           if (idx === 0) medalHtml = "🥇";
           if (idx === 1) medalHtml = "🥈";
           if (idx === 2) medalHtml = "🥉";
+          
+          // Kalkulasi Persentase Kehadiran
+          const attStats = getStudentAttendanceStats(student.id);
+          
+          // Kalkulasi Persentase Ketuntasan Tugas Keseluruhan
+          const totalTasks = tasks.length;
+          const completedTasks = taskSubmissions.filter(s => s.student_id === student.id && s.status === "Sudah Kumpul").length;
+          const compPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+          
           const highlightColor = student.average < 70 ? "text-red-600 font-extrabold" : "text-green-600 font-extrabold";
           html += `
                     <tr class="hover:bg-indigo-50/30 border-b border-gray-100">
                         <td class="p-2 text-center font-black text-xs">${medalHtml}</td>
                         <td class="p-2">
                             <div class="font-bold text-gray-800">${student.name}</div>
-                            <div class="text-[8px] text-gray-400 font-extrabold uppercase">${student.gender}</div>
+                            <div class="flex items-center gap-1 mt-0.5 flex-wrap">
+                                <span class="text-[8px] text-gray-400 font-extrabold uppercase bg-gray-100 px-1 rounded">${student.gender}</span>
+                                <span class="text-[8px] text-violet-600 font-extrabold uppercase bg-violet-100 px-1 rounded" title="Persentase Kehadiran">H: ${attStats.percent}%</span>
+                                <span class="text-[8px] text-blue-600 font-extrabold uppercase bg-blue-100 px-1 rounded" title="Persentase Ketuntasan Tugas">T: ${compPercent}%</span>
+                            </div>
                         </td>
                         <td class="p-2 text-center font-bold text-gray-600">${student.tasksGraded} Tugas</td>
                         <td class="p-2 text-center text-sm ${highlightColor}">${student.average}</td>
