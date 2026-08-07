@@ -2832,12 +2832,15 @@
       // MODUL: Restitusi Karakter (Admin)
       function renderTabRestitusi(container) {
         let html = `
-                <div class="flex border-b border-gray-200 mb-4">
-                    <button onclick="changeRestitusiSubTab('pending')" class="flex-1 py-2 text-center text-xs font-black rounded-t-xl ${activeRestitusiSubTab === "pending" ? "bg-rose-100 text-rose-800 border-2 border-b-0 border-rose-200" : "text-gray-400 hover:bg-gray-50"}">
-                        📥 Antrean Verifikasi
+                <div class="flex border-b border-gray-200 mb-4 overflow-x-auto gap-1">
+                    <button onclick="changeRestitusiSubTab('pending')" class="flex-1 py-2 px-1 whitespace-nowrap text-center text-[10px] font-black rounded-t-xl ${activeRestitusiSubTab === "pending" ? "bg-rose-100 text-rose-800 border-2 border-b-0 border-rose-200" : "text-gray-400 hover:bg-gray-50"}">
+                        📥 Antrean
                     </button>
-                    <button onclick="changeRestitusiSubTab('preset')" class="flex-1 py-2 text-center text-xs font-black rounded-t-xl ${activeRestitusiSubTab === "preset" ? "bg-rose-100 text-rose-800 border-2 border-b-0 border-rose-200" : "text-gray-400 hover:bg-gray-50"}">
-                        🛠️ Kelola Preset Restitusi (CRUD)
+                    <button onclick="changeRestitusiSubTab('preset')" class="flex-1 py-2 px-1 whitespace-nowrap text-center text-[10px] font-black rounded-t-xl ${activeRestitusiSubTab === "preset" ? "bg-rose-100 text-rose-800 border-2 border-b-0 border-rose-200" : "text-gray-400 hover:bg-gray-50"}">
+                        🛠️ Preset Restitusi
+                    </button>
+                    <button onclick="changeRestitusiSubTab('direct')" class="flex-1 py-2 px-1 whitespace-nowrap text-center text-[10px] font-black rounded-t-xl ${activeRestitusiSubTab === "direct" ? "bg-rose-100 text-rose-800 border-2 border-b-0 border-rose-200" : "text-gray-400 hover:bg-gray-50"}">
+                        ⚡ Eksekusi Langsung
                     </button>
                 </div>
             `;
@@ -2871,7 +2874,7 @@
             });
           }
           html += `</div>`;
-        } else {
+        } else if (activeRestitusiSubTab === "preset") {
           html += `
                     <div class="bg-rose-50/50 p-3 rounded-2xl border-2 border-rose-100 mb-3 space-y-3 shadow-sm">
                         <h5 class="text-[10px] font-black text-rose-800 uppercase border-b border-rose-100 pb-1">Tambah / Edit Preset Restitusi</h5>
@@ -2917,6 +2920,41 @@
                           .join("")}
                     </div>
                 `;
+        } else if (activeRestitusiSubTab === "direct") {
+            html += `
+                <div class="bg-white p-3 rounded-2xl border-2 border-rose-100 space-y-3 shadow-sm">
+                    <h5 class="text-[10px] font-black text-rose-800 uppercase border-b border-rose-100 pb-1">Eksekusi Restitusi Langsung (Kolektif)</h5>
+                    
+                    <div class="flex justify-between items-center mt-2">
+                        <label class="text-[9px] font-bold text-sky-800">Pilih Siswa (Bisa Lebih Dari Satu):</label>
+                        <div class="flex gap-2">
+                            <button onclick="toggleSelectAllRestitusi(true)" class="text-[9px] font-bold text-blue-600">Semua</button>
+                            <span class="text-gray-300 text-[10px]">|</span>
+                            <button onclick="toggleSelectAllRestitusi(false)" class="text-[9px] font-bold text-gray-400">Kosongkan</button>
+                        </div>
+                    </div>
+                    <input type="text" id="in-restitusi-collective-search" onkeyup="filterRestitusiLangsung()" placeholder="Ketik nama siswa untuk memfilter..." class="w-full p-2 text-xs bg-white border border-rose-200 rounded-xl text-gray-850 font-bold focus:outline-none focus:border-rose-500">
+                    
+                    <div id="restitusi-collective-list" class="max-h-48 overflow-y-auto border-2 border-rose-100 rounded-xl p-2 bg-white divide-y divide-rose-50">
+                        ${students.map(s => `
+                            <label class="restitusi-col-label flex items-center justify-between p-1.5 cursor-pointer hover:bg-rose-50/50 text-xs text-gray-700 font-bold">
+                                <span class="restitusi-col-name">${s.name} ${s.points_bad > 0 ? `<span class="text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full ml-1 font-black shadow-sm" title="Poin Pelanggaran">⚠️ ${s.points_bad}</span>` : ''}</span>
+                                <input type="checkbox" name="restitusi_collective_students" value="${s.id}" class="rounded bg-white border-rose-300 text-rose-600 focus:ring-rose-500">
+                            </label>
+                        `).join("")}
+                    </div>
+
+                    <div>
+                        <label class="text-[9px] text-gray-500 font-bold block mb-1 mt-2">Pilih Jenis Restitusi (Opsional, dari Preset)</label>
+                        <select id="in-restitusi-direct-preset" class="w-full p-2 text-xs rounded-xl bg-white border-2 border-rose-200 text-gray-850 font-black focus:outline-none">
+                            <option value="">-- Pilih Restitusi --</option>
+                            ${restitusiList.map(r => `<option value="${r.id}">${r.title} (Kurang ${r.point_reduction} Poin)</option>`).join("")}
+                        </select>
+                    </div>
+
+                    <button onclick="simpanRestitusiLangsungAdmin()" class="w-full bg-rose-600 hover:bg-rose-500 text-white font-black text-xs py-2 rounded-xl btn-3d border-b-4 border-rose-800 mt-2">EKSEKUSI RESTITUSI SEKARANG</button>
+                </div>
+            `;
         }
         container.innerHTML = html;
       }
@@ -2924,6 +2962,88 @@
       function changeRestitusiSubTab(tab) {
         activeRestitusiSubTab = tab;
         renderTabRestitusi(document.getElementById("admin-panel-content"));
+      }
+
+      function filterRestitusiLangsung() {
+        const input = document.getElementById("in-restitusi-collective-search").value.toLowerCase();
+        const labels = document.querySelectorAll("#restitusi-collective-list .restitusi-col-label");
+        labels.forEach(label => {
+            const name = label.querySelector(".restitusi-col-name").innerText.toLowerCase();
+            if (name.includes(input)) {
+                label.classList.remove("hidden");
+                label.classList.add("flex");
+            } else {
+                label.classList.remove("flex");
+                label.classList.add("hidden");
+            }
+        });
+      }
+
+      function toggleSelectAllRestitusi(check) {
+        const checkboxes = document.getElementsByName("restitusi_collective_students");
+        checkboxes.forEach((cb) => {
+            if(cb.closest('.restitusi-col-label').classList.contains('flex') || !cb.closest('.restitusi-col-label').classList.contains('hidden')) {
+                 cb.checked = check;
+            }
+        });
+      }
+
+      async function simpanRestitusiLangsungAdmin() {
+        const presetId = document.getElementById("in-restitusi-direct-preset").value;
+        const task = restitusiList.find(t => t.id === presetId);
+        
+        if (!task) {
+            showPopup("Pilih Restitusi", "Silakan pilih jenis restitusi terlebih dahulu!", "fa-triangle-exclamation", "text-amber-500", "bg-amber-50");
+            return;
+        }
+
+        const checkboxes = document.getElementsByName("restitusi_collective_students");
+        let selectedIds = [];
+        checkboxes.forEach(cb => {
+            if (cb.checked) selectedIds.push(cb.value);
+        });
+
+        if (selectedIds.length === 0) {
+            showPopup("Pilih Siswa", "Centang minimal satu siswa!", "fa-users-slash", "text-amber-500", "bg-amber-50");
+            return;
+        }
+
+        playSfx("click");
+
+        for (let i = 0; i < selectedIds.length; i++) {
+            const stdId = selectedIds[i];
+            const student = students.find(s => s.id.toString() === stdId.toString());
+            if (student) {
+                const reduction = task.point_reduction;
+                student.points_bad = Math.max(0, student.points_bad - reduction);
+                
+                const newLog = {
+                    id: "L_" + Date.now() + "_" + i,
+                    student_id: student.id,
+                    student_name: student.name,
+                    type: "Kebaikan",
+                    description: "Selesai restitusi langsung: " + task.title,
+                    points: reduction,
+                    timestamp: new Date().toLocaleString("id-ID"),
+                };
+                logs.unshift(newLog);
+                await postToCloud("students", "upsert", student);
+                await postToCloud("logs", "upsert", newLog);
+            }
+        }
+
+        saveLocalBackup();
+        renderDashboardStats();
+        updateClassAnalytics();
+        switchAdminTab("restitusi");
+        playSfx("success");
+        showPopup(
+            "Eksekusi Selesai",
+            `Berhasil merestitusi ${selectedIds.length} siswa. Poin pelanggaran telah dikurangi.`,
+            "fa-circle-check",
+            "text-sky-500",
+            "bg-sky-50"
+        );
       }
 
       async function simpanPresetRestitusi() {
