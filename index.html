@@ -347,6 +347,14 @@
             <i class="fa-solid fa-wallet block text-sm mb-0.5 text-yellow-500"></i>
             Kas Kelas
           </button>
+          <button
+            onclick="changeStudentSubTab('perkalian')"
+            id="btn-subtab-perkalian"
+            class="flex-1 text-center py-2 px-1 text-[11px] font-black rounded-xl text-gray-400 hover:bg-gray-100 transition whitespace-nowrap"
+          >
+            <i class="fa-solid fa-medal block text-sm mb-0.5 text-purple-500"></i>
+            Hafalan
+          </button>
         </div>
 
         <!-- Content Area Siswa -->
@@ -554,6 +562,20 @@
               <div id="student-kas-list" class="space-y-2"></div>
             </div>
           </div>
+
+          <!-- SUBTAB 5: KOLEKSI PERKALIAN -->
+          <div id="student-tab-perkalian" class="hidden space-y-4">
+            <div class="bg-white rounded-3xl p-4 shadow-sm border-2 border-purple-100 space-y-3">
+              <div class="text-center mb-2">
+                <h4 class="font-black text-sm text-purple-800 uppercase flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-crown text-purple-500"></i>
+                  Koleksi Stamp Perkalian
+                </h4>
+                <p class="text-[10px] text-gray-500 font-bold mt-1">Kumpulkan semua medali dengan menyetor hafalan ke Pak Guru!</p>
+              </div>
+              <div id="student-stamp-grid" class="grid grid-cols-2 md:grid-cols-3 gap-3"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -725,6 +747,14 @@
                 >
                   <i class="fa-solid fa-trophy text-yellow-500 text-lg"></i>
                   <span class="font-black text-[9px] text-sky-800 uppercase text-center">Peringkat</span>
+                </button>
+                <button
+                  onclick="switchAdminTab('perkalian')"
+                  id="tab-btn-perkalian"
+                  class="p-2 bg-white border-2 border-sky-200 rounded-2xl flex flex-col items-center justify-center gap-1 shadow-sm transition active:scale-95"
+                >
+                  <i class="fa-solid fa-medal text-purple-500 text-lg"></i>
+                  <span class="font-black text-[9px] text-sky-800 uppercase text-center">Stamp Hafalan</span>
                 </button>
               </div>
             </div>
@@ -929,6 +959,7 @@
       let taskSubmissions = [];
       let studentMessages = [];
       let kasAlerts = {};
+      let multiplicationStamps = [];
 
       let appSettings = {
         school_name: "SDN 4 Rambutan",
@@ -977,6 +1008,7 @@
         if (localStorage.getItem("br_kas_alerts")) kasAlerts = JSON.parse(localStorage.getItem("br_kas_alerts"));
         if (localStorage.getItem("br_student_messages"))
           studentMessages = JSON.parse(localStorage.getItem("br_student_messages"));
+        if (localStorage.getItem("br_stamps")) multiplicationStamps = JSON.parse(localStorage.getItem("br_stamps"));
       }
 
       function saveLocalBackup() {
@@ -993,13 +1025,14 @@
         localStorage.setItem("br_settings", JSON.stringify(appSettings));
         localStorage.setItem("br_kas_alerts", JSON.stringify(kasAlerts));
         localStorage.setItem("br_student_messages", JSON.stringify(studentMessages));
+        localStorage.setItem("br_stamps", JSON.stringify(multiplicationStamps));
       }
 
       // MODUL: Integrasi Database (Cloud API)
       async function syncFromCloud() {
         toggleCloudSync(true);
         try {
-          const [rStud, rLog, rRestL, rRestR, rAtt, rKas, rPres, rGoodPres, rTask, rSubm, rSettings, rAlerts, rMsgs] =
+          const [rStud, rLog, rRestL, rRestR, rAtt, rKas, rPres, rGoodPres, rTask, rSubm, rSettings, rAlerts, rMsgs, rStamps] =
             await Promise.all([
               supabaseClient.from("students").select("*").order("name", { ascending: true }),
               supabaseClient.from("logs").select("*").order("id", { ascending: false }),
@@ -1014,6 +1047,7 @@
               supabaseClient.from("app_settings").select("*"),
               supabaseClient.from("kas_alerts").select("*"),
               supabaseClient.from("student_messages").select("*").order("created_at", { ascending: false }),
+              supabaseClient.from("multiplication_stamps").select("*"),
             ]);
 
           if (rStud.data) students = rStud.data;
@@ -1027,6 +1061,7 @@
           if (rTask.data) tasks = rTask.data;
           if (rSubm.data) taskSubmissions = rSubm.data;
           if (rMsgs.data) studentMessages = rMsgs.data;
+          if (rStamps.data) multiplicationStamps = rStamps.data;
 
           if (rSettings.data && rSettings.data.length > 0) {
             const row = rSettings.data.find((x) => x.key === "school_identity");
@@ -1370,6 +1405,7 @@
         document.getElementById("student-tab-misi").classList.add("hidden");
         document.getElementById("student-tab-tugas").classList.add("hidden");
         document.getElementById("student-tab-kas").classList.add("hidden");
+        document.getElementById("student-tab-perkalian").classList.add("hidden");
 
         document.getElementById("btn-subtab-karakter").className =
           "flex-1 text-center py-2 px-1 text-[11px] font-black rounded-xl text-gray-400 hover:bg-gray-100 transition whitespace-nowrap";
@@ -1378,6 +1414,8 @@
         document.getElementById("btn-subtab-tugas").className =
           "flex-1 text-center py-2 px-1 text-[11px] font-black rounded-xl text-gray-400 hover:bg-gray-100 transition whitespace-nowrap";
         document.getElementById("btn-subtab-kas").className =
+          "flex-1 text-center py-2 px-1 text-[11px] font-black rounded-xl text-gray-400 hover:bg-gray-100 transition whitespace-nowrap";
+        document.getElementById("btn-subtab-perkalian").className =
           "flex-1 text-center py-2 px-1 text-[11px] font-black rounded-xl text-gray-400 hover:bg-gray-100 transition whitespace-nowrap";
 
         if (tabName === "karakter") {
@@ -1396,6 +1434,10 @@
           document.getElementById("student-tab-kas").classList.remove("hidden");
           document.getElementById("btn-subtab-kas").className =
             "flex-1 text-center py-2 px-1 text-[11px] font-black rounded-xl bg-amber-100 text-amber-800 transition whitespace-nowrap";
+        } else if (tabName === "perkalian") {
+          document.getElementById("student-tab-perkalian").classList.remove("hidden");
+          document.getElementById("btn-subtab-perkalian").className =
+            "flex-1 text-center py-2 px-1 text-[11px] font-black rounded-xl bg-purple-100 text-purple-800 transition whitespace-nowrap";
         }
       }
 
@@ -1631,6 +1673,34 @@
                         </div>
                     `;
           });
+        }
+
+        const stdStamps = multiplicationStamps.find((x) => x.student_id === currentStudent.id) || {};
+        const stampBox = document.getElementById("student-stamp-grid");
+        if(stampBox) {
+            stampBox.innerHTML = "";
+            for(let i=1; i<=10; i++) {
+                const isUnlocked = stdStamps[`t${i}`] === true;
+                if(isUnlocked) {
+                    stampBox.innerHTML += `
+                        <div class="flex flex-col items-center justify-center p-3 bg-gradient-to-br from-yellow-100 to-amber-200 rounded-2xl border-2 border-yellow-400 shadow-md transform hover:scale-105 transition card-pop">
+                            <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-inner mb-1.5 border-2 border-yellow-100">
+                                <i class="fa-solid fa-medal text-3xl text-yellow-500 drop-shadow-sm"></i>
+                            </div>
+                            <span class="text-[11px] font-black text-amber-900 tracking-wide">Perkalian ${i}</span>
+                        </div>
+                    `;
+                } else {
+                    stampBox.innerHTML += `
+                        <div class="flex flex-col items-center justify-center p-3 bg-gray-50 rounded-2xl border-2 border-gray-200 opacity-60">
+                            <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center mb-1.5">
+                                <i class="fa-solid fa-lock text-2xl text-gray-400"></i>
+                            </div>
+                            <span class="text-[11px] font-bold text-gray-500">Perkalian ${i}</span>
+                        </div>
+                    `;
+                }
+            }
         }
       }
 
@@ -2031,7 +2101,7 @@
         const container = document.getElementById("admin-panel-content");
         container.innerHTML = "";
 
-        const btns = ["siswa", "poin", "restitusi", "absen", "kas", "tugas", "rekap_nilai", "identitas", "rapor", "peringkat"];
+        const btns = ["siswa", "poin", "restitusi", "absen", "kas", "tugas", "rekap_nilai", "identitas", "rapor", "peringkat", "perkalian"];
         btns.forEach((b) => {
           const el = document.getElementById(`tab-btn-${b}`);
           if (el)
@@ -2055,6 +2125,7 @@
         else if (tabName === "identitas") renderTabIdentitas(container);
         else if (tabName === "rapor") renderTabRapor(container);
         else if (tabName === "peringkat") renderTabPeringkat(container);
+        else if (tabName === "perkalian") renderTabPerkalian(container);
       }
 
       function updateDynamicSchoolIdentity() {
@@ -4917,6 +4988,86 @@
         } else {
             showPopup("Popup Diblokir", "Mohon izinkan pop-ups untuk domain ini lalu coba lagi.", "fa-ban", "text-red-500", "bg-red-50");
         }
+      }
+
+      // MODUL BARU: PENGELOLAAN STAMP PERKALIAN
+      function renderTabPerkalian(container) {
+        let html = `
+            <div class="flex justify-between items-center mb-3">
+                <h4 class="font-black text-xs text-purple-800 uppercase tracking-wider"><i class="fa-solid fa-medal"></i> Kelola Stamp Hafalan Perkalian</h4>
+            </div>
+            <div class="bg-white p-4 rounded-3xl border-2 border-purple-100 shadow-sm space-y-4">
+                <div>
+                    <label class="text-[10px] font-black text-gray-500 uppercase block mb-1">Pilih Siswa:</label>
+                    <select id="select-stamp-student" onchange="loadStudentStampsAdmin()" class="w-full p-2.5 bg-purple-50 border-2 border-purple-200 rounded-xl text-purple-900 font-bold focus:outline-none focus:border-purple-500">
+                        <option value="">-- Silakan Pilih Siswa --</option>
+                        ${students.map((s) => `<option value="${s.id}">${s.name}</option>`).join("")}
+                    </select>
+                </div>
+                
+                <div id="stamp-checkboxes-container" class="hidden">
+                    <h5 class="text-[10px] font-black text-purple-800 uppercase mb-2">Beri Ceklis Pada Perkalian Yang Telah Dihafal:</h5>
+                    <div class="grid grid-cols-2 gap-2">
+                        ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                          .map(
+                            (i) => `
+                            <label class="flex items-center gap-2 p-2.5 bg-gray-50 rounded-xl border border-gray-200 cursor-pointer hover:bg-purple-50 transition">
+                                <input type="checkbox" id="stamp-cb-${i}" class="w-4 h-4 text-purple-600 rounded">
+                                <span class="text-xs font-bold text-gray-700">Perkalian ${i}</span>
+                            </label>
+                        `
+                          )
+                          .join("")}
+                    </div>
+                    <button onclick="simpanStampsAdmin()" class="w-full bg-purple-600 text-white font-black text-xs py-2.5 rounded-xl btn-3d border-b-4 border-purple-800 mt-4">SIMPAN KOLEKSI STAMP</button>
+                </div>
+            </div>
+        `;
+        container.innerHTML = html;
+      }
+
+      function loadStudentStampsAdmin() {
+        const studentId = document.getElementById("select-stamp-student").value;
+        const container = document.getElementById("stamp-checkboxes-container");
+        
+        if (!studentId) {
+            container.classList.add("hidden");
+            return;
+        }
+        
+        container.classList.remove("hidden");
+        const stdStamps = multiplicationStamps.find((x) => x.student_id === studentId) || {};
+        
+        for (let i = 1; i <= 10; i++) {
+            document.getElementById(`stamp-cb-${i}`).checked = stdStamps[`t${i}`] === true;
+        }
+      }
+
+      async function simpanStampsAdmin() {
+        playSfx("click");
+        const studentId = document.getElementById("select-stamp-student").value;
+        if (!studentId) return;
+
+        let stdStamps = multiplicationStamps.find((x) => x.student_id === studentId);
+        if (!stdStamps) {
+            stdStamps = { student_id: studentId };
+            multiplicationStamps.push(stdStamps);
+        }
+
+        for (let i = 1; i <= 10; i++) {
+            stdStamps[`t${i}`] = document.getElementById(`stamp-cb-${i}`).checked;
+        }
+
+        saveLocalBackup();
+        playSfx("success");
+        await postToCloud("multiplication_stamps", "upsert", stdStamps);
+        showPopup(
+          "Berhasil!",
+          "Koleksi stamp hafalan perkalian siswa telah diperbarui.",
+          "fa-medal",
+          "text-purple-500",
+          "bg-purple-100"
+        );
       }
       
       // --- FITUR STATUS KONEKSI (ONLINE/OFFLINE) ---
