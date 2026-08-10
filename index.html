@@ -554,6 +554,9 @@
 
           <!-- SUBTAB 4: KAS KELAS -->
           <div id="student-tab-kas" class="hidden space-y-4">
+            <!-- Tempat Notifikasi Status Kas Mingguan Siswa -->
+            <div id="student-weekly-kas-notif"></div>
+
             <div class="bg-white rounded-3xl p-4 shadow-sm border-2 border-sky-100 space-y-3">
               <h4 class="font-black text-xs text-sky-800 uppercase flex items-center gap-1.5">
                 <i class="fa-solid fa-money-bill-transfer text-sky-500"></i>
@@ -960,6 +963,8 @@
       let studentMessages = [];
       let kasAlerts = {};
       let multiplicationStamps = [];
+      let kasStudentSummary = [];
+      let kasWeeklyRecords = [];
 
       let appSettings = {
         school_name: "SDN 4 Rambutan",
@@ -1009,6 +1014,8 @@
         if (localStorage.getItem("br_student_messages"))
           studentMessages = JSON.parse(localStorage.getItem("br_student_messages"));
         if (localStorage.getItem("br_stamps")) multiplicationStamps = JSON.parse(localStorage.getItem("br_stamps"));
+        if (localStorage.getItem("br_kas_summary")) kasStudentSummary = JSON.parse(localStorage.getItem("br_kas_summary"));
+        if (localStorage.getItem("br_kas_weekly")) kasWeeklyRecords = JSON.parse(localStorage.getItem("br_kas_weekly"));
       }
 
       function saveLocalBackup() {
@@ -1026,13 +1033,15 @@
         localStorage.setItem("br_kas_alerts", JSON.stringify(kasAlerts));
         localStorage.setItem("br_student_messages", JSON.stringify(studentMessages));
         localStorage.setItem("br_stamps", JSON.stringify(multiplicationStamps));
+        localStorage.setItem("br_kas_summary", JSON.stringify(kasStudentSummary));
+        localStorage.setItem("br_kas_weekly", JSON.stringify(kasWeeklyRecords));
       }
 
       // MODUL: Integrasi Database (Cloud API)
       async function syncFromCloud() {
         toggleCloudSync(true);
         try {
-          const [rStud, rLog, rRestL, rRestR, rAtt, rKas, rPres, rGoodPres, rTask, rSubm, rSettings, rAlerts, rMsgs, rStamps] =
+          const [rStud, rLog, rRestL, rRestR, rAtt, rKas, rPres, rGoodPres, rTask, rSubm, rSettings, rAlerts, rMsgs, rStamps, rKasWeek] =
             await Promise.all([
               supabaseClient.from("students").select("*").order("name", { ascending: true }),
               supabaseClient.from("logs").select("*").order("id", { ascending: false }),
@@ -1048,6 +1057,7 @@
               supabaseClient.from("kas_alerts").select("*"),
               supabaseClient.from("student_messages").select("*").order("created_at", { ascending: false }),
               supabaseClient.from("multiplication_stamps").select("*"),
+              supabaseClient.from("kas_weekly_records").select("*").order("date", { ascending: false }),
             ]);
 
           if (rStud.data) students = rStud.data;
@@ -1062,6 +1072,7 @@
           if (rSubm.data) taskSubmissions = rSubm.data;
           if (rMsgs.data) studentMessages = rMsgs.data;
           if (rStamps.data) multiplicationStamps = rStamps.data;
+          if (rKasWeek.data) kasWeeklyRecords = rKasWeek.data;
 
           if (rSettings.data && rSettings.data.length > 0) {
             const row = rSettings.data.find((x) => x.key === "school_identity");
@@ -1076,6 +1087,7 @@
             kasAlerts = alertsObj;
           }
 
+          rebuildKasSummary(); // Kalkulasi ulang kas mingguan secara dinamis
           saveLocalBackup();
           updateDynamicSchoolIdentity();
           renderDashboardStats();
@@ -1642,10 +1654,49 @@
 
         const kasBox = document.getElementById("student-kas-list");
         kasBox.innerHTML = "";
-        const totalKas = kasTransactions.reduce(
+        
+        // Render Notifikasi Kas Mingguan Siswa
+        const weeklyKasNotif = document.getElementById("student-weekly-kas-notif");
+        if (weeklyKasNotif) {
+            const myKas = kasStudentSummary.find(k => k.student_id === currentStudent.id);
+            if (!myKas) {
+                weeklyKasNotif.innerHTML = `
+                    <div class="p-3 bg-gray-50 border-2 border-gray-200 rounded-2xl text-center shadow-sm">
+                        <span class="text-xs font-bold text-gray-500">Belum ada catatan kas mingguan untukmu.</span>
+                    </div>`;
+            } else if (myKas.status === "Lunas") {
+                weeklyKasNotif.innerHTML = `
+                    <div class="p-3 bg-green-50 border-2 border-green-200 rounded-2xl flex items-center gap-3 shadow-sm card-pop">
+                        <div class="w-10 h-10 rounded-full bg-green-200 text-green-700 flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-circle-check text-2xl animate-bounce"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-black text-xs text-green-800 uppercase">Kas Mingguan Lunas! 🎉</h4>
+                            <p class="text-[10px] text-green-700 font-bold mt-0.5">Total Bayar: ${formatRupiah(myKas.paid_amount)}</p>
+                        </div>
+                    </div>`;
+            } else {
+                weeklyKasNotif.innerHTML = `
+                    <div class="p-3 bg-red-50 border-2 border-red-200 rounded-2xl flex items-center gap-3 shadow-sm card-pop blink-danger">
+                        <div class="w-10 h-10 rounded-full bg-red-200 text-red-700 flex items-center justify-center shrink-0">
+                            <i class="fa-solid fa-triangle-exclamation text-2xl animate-bounce"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-black text-xs text-red-800 uppercase">Tunggakan Kas Mingguan!</h4>
+                            <p class="text-[10px] text-red-700 font-bold mt-0.5">Tunggakan: ${formatRupiah(myKas.arrears_amount)} | Terbayar: ${formatRupiah(myKas.paid_amount)}</p>
+                        </div>
+                    </div>`;
+            }
+        }
+
+        let totalKas = kasTransactions.reduce(
           (acc, curr) => (curr.type === "in" ? acc + Number(curr.amount) : acc - Number(curr.amount)),
           0,
         );
+        kasWeeklyRecords.forEach(week => {
+            let countLunas = Object.values(week.records).filter(st => st === "Lunas").length;
+            totalKas += (countLunas * Number(week.nominal));
+        });
         kasBox.innerHTML += `
                 <div class="p-3 bg-sky-600 text-white rounded-xl text-center shadow-inner mb-3">
                     <span class="text-[9px] font-bold uppercase tracking-wider block mb-0.5">Jumlah Kas Kelas Saat Ini</span>
@@ -1653,10 +1704,27 @@
                 </div>
             `;
 
-        if (kasTransactions.length === 0) {
+        // PENGGABUNGAN DATA RIWAYAT UNTUK SISWA
+        let combinedStudentHistory = [...kasTransactions];
+        kasWeeklyRecords.forEach(w => {
+            let countLunas = Object.values(w.records).filter(st => st === "Lunas").length;
+            if (countLunas > 0) {
+                combinedStudentHistory.push({
+                    id: "W_" + w.date,
+                    date: w.date,
+                    type: "in",
+                    amount: countLunas * Number(w.nominal),
+                    description: "Pemasukan Kas Mingguan Kolektif"
+                });
+            }
+        });
+        // Urutkan berdasarkan tanggal terbaru
+        combinedStudentHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        if (combinedStudentHistory.length === 0) {
           kasBox.innerHTML += `<p class="text-xs text-gray-400 text-center py-4 font-bold">Belum ada transaksi kas tercatat.</p>`;
         } else {
-          kasTransactions.forEach((k) => {
+          combinedStudentHistory.forEach((k) => {
             const isIn = k.type === "in";
             kasBox.innerHTML += `
                         <div class="p-2.5 bg-gray-50 border border-gray-150 rounded-xl flex justify-between items-center">
@@ -1984,10 +2052,14 @@
         document.getElementById("pub-stat-putra").innerText = students.filter((s) => s.gender === "Putra").length;
         document.getElementById("pub-stat-putri").innerText = students.filter((s) => s.gender === "Putri").length;
 
-        const totalKas = kasTransactions.reduce(
+        let totalKas = kasTransactions.reduce(
           (acc, curr) => (curr.type === "in" ? acc + Number(curr.amount) : acc - Number(curr.amount)),
           0,
         );
+        kasWeeklyRecords.forEach(week => {
+            let countLunas = Object.values(week.records).filter(st => st === "Lunas").length;
+            totalKas += (countLunas * Number(week.nominal));
+        });
         document.getElementById("pub-total-kas").innerText = formatRupiah(totalKas);
 
         const kbBox = document.getElementById("leaderboard-kebaikan");
@@ -3357,11 +3429,29 @@
 
       // MODUL: Pengelolaan Uang Kas Kelas (Admin)
       function renderTabKas(container) {
-        const totalKas = kasTransactions.reduce(
+        rebuildKasSummary(); // Pastikan data summary selalu mutakhir
+        
+        let totalKas = kasTransactions.reduce(
           (acc, curr) => (curr.type === "in" ? acc + Number(curr.amount) : acc - Number(curr.amount)),
           0,
         );
-        let studentOptionsHtml = students.map((s) => `<option value="${s.id}">${s.name}</option>`).join("");
+        kasWeeklyRecords.forEach(week => {
+            let countLunas = Object.values(week.records).filter(st => st === "Lunas").length;
+            totalKas += (countLunas * Number(week.nominal));
+        });
+
+        const today = getTodayDate();
+        let selectedDate = document.getElementById("kas-week-date")?.value || today;
+        let currentWeek = kasWeeklyRecords.find(w => w.date === selectedDate);
+        let nominal = currentWeek ? currentWeek.nominal : 2000;
+        
+        if (!currentWeek) {
+            let defRecords = {};
+            students.forEach(s => defRecords[s.id] = "Lunas");
+            currentWeek = { date: selectedDate, nominal: 2000, records: defRecords };
+        }
+
+        const isFilled = kasWeeklyRecords.some(w => w.date === selectedDate);
 
         let html = `
                 <div class="flex justify-between items-center mb-3">
@@ -3370,28 +3460,45 @@
 
                 <div class="bg-gradient-to-r from-sky-600 to-blue-600 rounded-2xl p-4 mb-3 flex justify-between items-center shadow-inner text-white border-2 border-sky-400">
                     <div>
-                        <span class="text-[9px] text-white/85 font-bold uppercase tracking-wider block">Total Kas Kelas</span>
+                        <span class="text-[9px] text-white/85 font-bold uppercase tracking-wider block">Total Kas Kelas Keseluruhan</span>
                         <h2 class="text-lg font-black">${formatRupiah(totalKas)}</h2>
                     </div>
                     <i class="fa-solid fa-wallet text-2xl text-sky-200"></i>
                 </div>
 
-                <div class="bg-red-50/50 p-3 rounded-2xl border-2 border-red-200 space-y-3 mb-3">
-                    <h5 class="text-[10px] font-black text-red-800 uppercase border-b border-red-100 pb-1"><i class="fa-solid fa-bell"></i> Ingatkan Tunggakan Kas Kelas</h5>
+                <div class="bg-indigo-50/50 p-3 rounded-2xl border-2 border-indigo-200 space-y-3 mb-3">
+                    <h5 class="text-[10px] font-black text-indigo-800 uppercase border-b border-indigo-100 pb-1 flex items-center gap-1.5"><i class="fa-solid fa-calendar-week"></i> Kelola Kas Mingguan Kolektif</h5>
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="text-[9px] text-gray-500 font-bold block mb-1">Pilih Siswa</label>
-                            <select id="kas-alert-student" class="w-full p-2 text-xs rounded-xl bg-white border-2 border-red-200 text-gray-850 font-black">
-                                <option value="">-- Pilih Siswa --</option>
-                                ${studentOptionsHtml}
-                            </select>
+                            <label class="text-[9px] text-gray-500 font-bold block mb-1">Pilih Tanggal Pungutan</label>
+                            <input type="date" id="kas-week-date" value="${selectedDate}" onchange="changeKasWeekView()" class="w-full p-2 text-xs rounded-xl bg-white border border-indigo-200 text-gray-850 font-black focus:outline-none focus:border-indigo-500">
                         </div>
                         <div>
-                            <label class="text-[9px] text-gray-500 font-bold block mb-1">Besar Tunggakan (Rp)</label>
-                            <input type="number" id="kas-alert-amount" placeholder="Cth: 15000" class="w-full p-2 text-xs rounded-xl bg-white border-2 border-red-200 text-gray-850 font-black">
+                            <label class="text-[9px] text-gray-500 font-bold block mb-1">Besaran Kas (Rp)</label>
+                            <input type="number" id="kas-week-nominal" value="${nominal}" class="w-full p-2 text-xs rounded-xl bg-white border border-indigo-200 text-gray-850 font-black focus:outline-none focus:border-indigo-500">
                         </div>
                     </div>
-                    <button onclick="kirimPeringatanKas()" class="w-full bg-red-600 hover:bg-red-500 text-white font-black text-xs py-2 rounded-xl btn-3d border-b-4 border-red-800">Kirim Peringatan Berkedip Ke Portal Siswa</button>
+
+                    <div class="flex justify-between items-center text-[10px] font-bold text-indigo-800 mt-2">
+                        <span>Daftar Siswa (Ceklis Status):</span>
+                        <span class="${isFilled ? "text-green-600" : "text-amber-600"} bg-white px-2 py-1 rounded-lg border border-indigo-100 shadow-sm">${isFilled ? "✓ Sudah Disimpan" : "⚠️ Belum Disimpan"}</span>
+                    </div>
+                    <input type="text" id="in-kas-search" onkeyup="filterKasList()" placeholder="Cari nama siswa..." class="w-full p-2 text-xs bg-white border border-indigo-200 rounded-xl font-bold focus:outline-none mb-1">
+                    
+                    <div id="kas-student-list" class="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+                        ${students.map(s => {
+                            const st = currentWeek.records[s.id] || "Lunas";
+                            return `
+                            <div class="kas-row p-2 bg-white rounded-xl border border-indigo-100 flex justify-between items-center text-xs shadow-sm">
+                                <span class="kas-student-name font-bold text-gray-800 truncate">${s.name}</span>
+                                <div class="flex gap-1 shrink-0 bg-gray-100 p-0.5 rounded-lg border border-gray-200">
+                                    <button onclick="setKasStatus('${s.id}', 'Lunas')" id="btn-kas-${s.id}-Lunas" class="w-16 py-1 text-[9px] font-black rounded-md transition-all ${st === 'Lunas' ? 'bg-green-500 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-200'}">Lunas</button>
+                                    <button onclick="setKasStatus('${s.id}', 'Menunggak')" id="btn-kas-${s.id}-Menunggak" class="w-20 py-1 text-[9px] font-black rounded-md transition-all ${st === 'Menunggak' ? 'bg-red-500 text-white shadow-sm animate-pulse' : 'text-gray-500 hover:bg-gray-200'}">Menunggak</button>
+                                </div>
+                            </div>`;
+                        }).join("")}
+                    </div>
+                    <button onclick="simpanKasMingguanKolektif()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs py-2 rounded-xl btn-3d border-b-4 border-indigo-800 mt-2"><i class="fa-solid fa-cloud-arrow-up"></i> SIMPAN KAS MINGGUAN INI</button>
                 </div>
 
                 <div class="bg-white p-3 rounded-2xl border-2 border-sky-100 space-y-3">
@@ -3425,6 +3532,9 @@
                     <div class="flex gap-2">
                         <button onclick="simpanKasAdmin()" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-black text-xs py-2 rounded-xl btn-3d border-b-4 border-sky-800">Simpan Kas</button>
                         <button onclick="batalEditKas()" class="bg-gray-400 text-white font-black text-xs py-2 px-3 rounded-xl">Batal</button>
+                    <div class="flex gap-2">
+                        <button onclick="simpanKasAdmin()" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-black text-xs py-2 rounded-xl btn-3d border-b-4 border-sky-800">Simpan Kas</button>
+                        <button onclick="batalEditKas()" class="bg-gray-400 text-white font-black text-xs py-2 px-3 rounded-xl">Batal</button>
                     </div>
                 </div>
             `;
@@ -3434,11 +3544,35 @@
                 <div class="space-y-2 max-h-64 overflow-y-auto pr-1">
             `;
 
-        if (kasTransactions.length === 0) {
+        // PENGGABUNGAN DATA RIWAYAT UNTUK GURU
+        let combinedAdminHistory = [...kasTransactions];
+        kasWeeklyRecords.forEach(w => {
+            let countLunas = Object.values(w.records).filter(st => st === "Lunas").length;
+            if (countLunas > 0) {
+                combinedAdminHistory.push({
+                    id: "W_" + w.date,
+                    date: w.date,
+                    type: "in",
+                    amount: countLunas * Number(w.nominal),
+                    description: "Pemasukan Kas Mingguan Kolektif",
+                    isWeekly: true // Flag penanda ini adalah hasil kolektif
+                });
+            }
+        });
+        // Urutkan berdasarkan tanggal terbaru
+        combinedAdminHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        if (combinedAdminHistory.length === 0) {
           html += `<p class="text-xs text-center py-4 font-bold text-gray-400">Belum ada catatan transaksi.</p>`;
         } else {
-          kasTransactions.forEach((k) => {
+          combinedAdminHistory.forEach((k) => {
             const isIn = k.type === "in";
+            // Jika data kolektif, tombol edit/hapus disembunyikan agar diedit dari atas.
+            const actionsHtml = k.isWeekly 
+                ? `<span class="text-[8px] bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold" title="Dikelola dari form mingguan di atas">Otomatis</span>`
+                : `<button onclick="editKasAdmin('${k.id}')" class="text-blue-500 p-1 hover:bg-blue-50 rounded"><i class="fa-solid fa-pen text-[10px]"></i></button>
+                   <button onclick="hapusKasAdmin('${k.id}')" class="text-red-500 p-1 hover:bg-red-50 rounded"><i class="fa-solid fa-trash text-[10px]"></i></button>`;
+
             html += `
                         <div class="p-2.5 bg-white rounded-xl border border-gray-200 flex justify-between items-center shadow-sm hover:border-sky-300 transition">
                             <div class="flex items-center gap-2">
@@ -3452,8 +3586,7 @@
                             </div>
                             <div class="flex items-center gap-2 shrink-0">
                                 <span class="text-xs font-black ${isIn ? "text-green-600" : "text-red-600"}">${isIn ? "+" : "-"}${formatRupiah(k.amount)}</span>
-                                <button onclick="editKasAdmin('${k.id}')" class="text-blue-500 p-1 hover:bg-blue-50 rounded"><i class="fa-solid fa-pen text-[10px]"></i></button>
-                                <button onclick="hapusKasAdmin('${k.id}')" class="text-red-500 p-1 hover:bg-red-50 rounded"><i class="fa-solid fa-trash text-[10px]"></i></button>
+                                ${actionsHtml}
                             </div>
                         </div>
                     `;
@@ -3463,28 +3596,145 @@
         container.innerHTML = html;
       }
 
-      async function kirimPeringatanKas() {
-        playSfx("click");
-        const studentId = document.getElementById("kas-alert-student").value;
-        const amount = document.getElementById("kas-alert-amount").value;
+      function rebuildKasSummary() {
+          kasStudentSummary = [];
+          kasAlerts = {};
+          students.forEach(s => {
+              let paid = 0;
+              let arrears = 0;
+              kasWeeklyRecords.forEach(week => {
+                  const st = week.records[s.id];
+                  if (st === "Lunas") paid += Number(week.nominal);
+                  else if (st === "Menunggak") arrears += Number(week.nominal);
+              });
+              
+              let status = arrears > 0 ? "Menunggak" : "Lunas";
+              kasStudentSummary.push({ student_id: s.id, status, paid_amount: paid, arrears_amount: arrears });
+              
+              if (arrears > 0) {
+                  kasAlerts[s.id] = arrears;
+              }
+          });
+      }
 
-        if (!studentId || !amount || Number(amount) <= 0) {
-          showPopup("Data Kosong", "Mohon isi nama siswa dan nominal!", "fa-circle-xmark", "text-red-500", "bg-red-50");
-          return;
-        }
+      function changeKasWeekView() {
+          renderTabKas(document.getElementById("admin-panel-content"));
+      }
 
-        kasAlerts[studentId] = Number(amount);
-        saveLocalBackup();
-        switchAdminTab("kas");
-        playSfx("success");
-        await postToCloud("kas_alerts", "upsert", { student_id: studentId, amount: Number(amount) });
-        showPopup(
-          "Peringatan Dikirim!",
-          "Notifikasi tagihan kas berkedip aktif di portal siswa.",
-          "fa-bell",
-          "text-sky-500",
-          "bg-sky-50",
-        );
+      function filterKasList() {
+          const input = document.getElementById("in-kas-search").value.toLowerCase();
+          const rows = document.querySelectorAll("#kas-student-list .kas-row");
+          rows.forEach(row => {
+              const name = row.querySelector(".kas-student-name").innerText.toLowerCase();
+              row.style.display = name.includes(input) ? "flex" : "none";
+          });
+      }
+
+      function setKasStatus(studentId, opt) {
+          playSfx("click");
+          const date = document.getElementById("kas-week-date").value;
+          const nominal = document.getElementById("kas-week-nominal").value;
+          
+          let week = kasWeeklyRecords.find(w => w.date === date);
+          if (!week) {
+              let defRecords = {};
+              students.forEach(s => defRecords[s.id] = "Lunas");
+              week = { date, nominal: Number(nominal), records: defRecords };
+              kasWeeklyRecords.push(week);
+          }
+          week.records[studentId] = opt;
+
+          ['Lunas', 'Menunggak'].forEach(x => {
+              const btn = document.getElementById(`btn-kas-${studentId}-${x}`);
+              if (btn) {
+                  if (x === opt) {
+                      btn.className = `w-${x === 'Lunas' ? '16' : '20'} py-1 text-[9px] font-black rounded-md transition-all shadow-sm ${x === 'Lunas' ? 'bg-green-500 text-white' : 'bg-red-500 text-white animate-pulse'}`;
+                  } else {
+                      btn.className = `w-${x === 'Lunas' ? '16' : '20'} py-1 text-[9px] font-black rounded-md transition-all text-gray-500 hover:bg-gray-200`;
+                  }
+              }
+          });
+      }
+
+      async function simpanKasMingguanKolektif() {
+          const date = document.getElementById("kas-week-date").value;
+          const nominal = Number(document.getElementById("kas-week-nominal").value) || 0;
+          
+          if (nominal <= 0) {
+              showPopup("Nominal Tidak Valid", "Besaran kas harus lebih dari 0 Rupiah!", "fa-triangle-exclamation", "text-red-500", "bg-red-50");
+              return;
+          }
+
+          let week = kasWeeklyRecords.find(w => w.date === date);
+          if (!week) {
+              let defRecords = {};
+              students.forEach(s => {
+                  const btnMenunggak = document.getElementById(`btn-kas-${s.id}-Menunggak`);
+                  if(btnMenunggak && btnMenunggak.classList.contains('bg-red-500')) {
+                       defRecords[s.id] = "Menunggak";
+                  } else {
+                       defRecords[s.id] = "Lunas";
+                  }
+              });
+              week = { date, nominal, records: defRecords };
+              kasWeeklyRecords.push(week);
+          } else {
+              week.nominal = nominal;
+          }
+
+          // --- LOGIKA OTOMATIS POIN PELANGGARAN KAS ---
+          for (let i = 0; i < students.length; i++) {
+              const s = students[i];
+              const status = week.records[s.id];
+              const logId = "L_KAS_" + s.id + "_" + date;
+              const logDesc = "Tidak disiplin kas kelas (Tgl: " + date + ")";
+              const existingLogIdx = logs.findIndex(l => l.id === logId);
+
+              if (status === "Menunggak") {
+                  if (existingLogIdx === -1) {
+                      s.points_bad += 5;
+                      const newLog = {
+                          id: logId,
+                          student_id: s.id,
+                          student_name: s.name,
+                          type: "Pelanggaran",
+                          description: logDesc,
+                          points: 5,
+                          timestamp: new Date().toLocaleString("id-ID")
+                      };
+                      logs.unshift(newLog);
+                      await postToCloud("students", "upsert", s);
+                      await postToCloud("logs", "upsert", newLog);
+                  }
+              } else if (status === "Lunas") {
+                  if (existingLogIdx !== -1) {
+                      const logToRemove = logs[existingLogIdx];
+                      s.points_bad = Math.max(0, s.points_bad - logToRemove.points);
+                      logs.splice(existingLogIdx, 1);
+                      await postToCloud("students", "upsert", s);
+                      await postToCloud("logs", "delete", null, logId);
+                  }
+              }
+          }
+          // --- SELESAI LOGIKA OTOMATIS KAS ---
+
+          rebuildKasSummary();
+          saveLocalBackup();
+          renderDashboardStats(); // Refresh peringkat di dashboard
+          renderTabKas(document.getElementById("admin-panel-content"));
+          playSfx("success");
+          
+          await postToCloud("kas_weekly_records", "upsert", week);
+          // Update Notifikasi Blink untuk Anak-Anak di Supabase
+          for(const s of students) {
+               if(kasAlerts[s.id]) {
+                   await postToCloud("kas_alerts", "upsert", { student_id: s.id, amount: kasAlerts[s.id] });
+               } else {
+                   await postToCloud("kas_alerts", "upsert", { student_id: s.id, amount: 0 }); // Hapus/reset tunggakan
+               }
+          }
+          
+          showPopup("Kas Disimpan!", `Catatan kas mingguan berhasil direkam. Notifikasi tunggakan otomatis muncul di portal siswa yang menunggak.`, "fa-check-circle", "text-indigo-500", "bg-indigo-50");
       }
 
       async function simpanKasAdmin() {
