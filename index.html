@@ -1052,7 +1052,25 @@
               supabaseClient.from("violation_presets").select("*").order("title", { ascending: true }),
               supabaseClient.from("good_presets").select("*").order("title", { ascending: true }),
               supabaseClient.from("tasks").select("*").order("due_date", { ascending: true }),
-              supabaseClient.from("task_submissions").select("*"),
+              
+              // FITUR BARU: Auto-Pagination untuk menembus limit 1000 data Supabase pada tabel nilai
+              (async () => {
+                  let allSubmissions = [];
+                  let from = 0;
+                  const step = 1000;
+                  while(true) {
+                      const {data} = await supabaseClient.from("task_submissions").select("*").range(from, from + step - 1);
+                      if (data && data.length > 0) {
+                          allSubmissions.push(...data);
+                          if (data.length < step) break;
+                          from += step;
+                      } else {
+                          break;
+                      }
+                  }
+                  return { data: allSubmissions };
+              })(),
+
               supabaseClient.from("app_settings").select("*"),
               supabaseClient.from("kas_alerts").select("*"),
               supabaseClient.from("student_messages").select("*").order("created_at", { ascending: false }),
@@ -1368,7 +1386,7 @@
         categories.forEach((cat) => (categoryGrades[cat] = { sum: 0, count: 0 }));
 
         tasks.forEach((t) => {
-          const subm = taskSubmissions.find((s) => s.task_id === t.id && s.student_id === studentId);
+          const subm = taskSubmissions.find((s) => String(s.task_id) === String(taskId) && String(s.student_id) === String(studentId));
           if (subm && subm.score !== null && subm.score !== undefined && subm.score !== "") {
             const cat = t.category || "LAINNYA";
             if (categoryGrades[cat]) {
@@ -1799,7 +1817,7 @@
                 `;
 
           groupedMisi[cat].forEach((m) => {
-            const subm = taskSubmissions.find((s) => s.task_id === m.id && s.student_id === currentStudent.id);
+            const subm = taskSubmissions.find((s) => String(s.task_id) === String(taskId) && String(s.student_id) === String(studentId));
             const status = subm ? subm.status : "Belum Kumpul";
             if (status === "Sudah Kumpul") completedMisiCount++;
 
@@ -1869,7 +1887,7 @@
                 `;
 
           groupedTugas[cat].forEach((t) => {
-            const subm = taskSubmissions.find((s) => s.task_id === t.id && s.student_id === currentStudent.id);
+            const subm = taskSubmissions.find((s) => String(s.task_id) === String(taskId) && String(s.student_id) === String(studentId));
             const status = subm ? subm.status : "Belum Kumpul";
             const currentScore = subm && subm.score !== null ? subm.score : "";
 
@@ -3795,7 +3813,7 @@
 
       // MODUL: Pengelolaan Tugas, Nilai, & Misi Karakter (Admin) - TERMASUK FITUR KUNCI NILAI
       function isTaskFullyCompleted(taskId) {
-        const subs = taskSubmissions.filter((s) => s.task_id === taskId);
+        const subs = taskSubmissions.filter((s) => String(s.task_id) === String(taskId));
         if (subs.length === 0) return false;
         return subs.every((s) => s.status === "Sudah Kumpul");
       }
@@ -3933,8 +3951,8 @@
                 `;
         } else {
           filteredTasks.forEach((t) => {
-            const taskSubms = taskSubmissions.filter((s) => s.task_id === t.id);
-            const totalAssigned = taskSubms.length;
+            const taskSubms = taskSubmissions.filter((s) => String(s.task_id) === String(t.id));
+            const totalAssigned = students.length;
             const completed = taskSubms.filter((s) => s.status === "Sudah Kumpul").length;
             const completionRate = totalAssigned > 0 ? Math.round((completed / totalAssigned) * 100) : 0;
 
@@ -3952,8 +3970,8 @@
             const averageScoreVal = gradedCount > 0 ? Math.round((totalScoreVal / gradedCount) * 10) / 10 : 0;
 
             const sortedStudents = [...students].sort((a, b) => {
-              const subA = taskSubms.find((sub) => sub.student_id === a.id);
-              const subB = taskSubms.find((sub) => sub.student_id === b.id);
+              const subA = taskSubms.find((sub) => String(sub.student_id) === String(a.id));
+              const subB = taskSubms.find((sub) => String(sub.student_id) === String(b.id));
               const statusA = subA ? subA.status : "Belum Kumpul";
               const statusB = subB ? subB.status : "Belum Kumpul";
               const isUnfilledA = statusA !== "Sudah Kumpul";
@@ -4017,10 +4035,10 @@
                                         ${t.is_locked ? '<span class="text-[9px] font-black text-red-600 uppercase bg-red-50 px-2 py-1 rounded border border-red-200"><i class="fa-solid fa-lock-keyhole"></i> Nilai Terkunci</span>' : `<button onclick="markAllTaskSubmissionsAsDone('${t.id}')" class="bg-sky-600 hover:bg-sky-500 text-white font-black text-[9px] px-2.5 py-1 rounded-lg border-b-2 border-sky-800 transition active:scale-95 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Semua Lulus</button>`}
                                     </div>
 
-                                    <div class="space-y-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
+                                    <div class="space-y-1.5 overflow-y-auto divide-y divide-gray-100">
                                         ${sortedStudents
                                           .map((s) => {
-                                            const subm = taskSubms.find((sub) => sub.student_id === s.id);
+                                            const subm = taskSubms.find((sub) => String(sub.student_id) === String(s.id));
                                             const currentStatus = subm ? subm.status : "Belum Kumpul";
                                             const currentScore =
                                               subm && subm.score !== null && subm.score !== undefined ? subm.score : "";
@@ -4256,15 +4274,17 @@
         playSfx("success");
         await postToCloud("tasks", "upsert", newTugas);
 
-        for (let i = 0; i < students.length; i++) {
-          const s = students[i];
-          await postToCloud("task_submissions", "upsert", {
-            id: "S_" + newTugas.id + "_" + s.id,
-            task_id: newTugas.id,
-            student_id: s.id,
-            status: "Belum Kumpul",
-            score: null,
-          });
+        if (index < 0) {
+            for (let i = 0; i < students.length; i++) {
+              const s = students[i];
+              await postToCloud("task_submissions", "upsert", {
+                id: "S_" + newTugas.id + "_" + s.id,
+                task_id: newTugas.id,
+                student_id: s.id,
+                status: "Belum Kumpul",
+                score: null,
+              });
+            }
         }
         updateClassAnalytics();
 
@@ -4306,7 +4326,7 @@
 
       async function updateSubmissionStatus(taskId, studentId, newStatus) {
         playSfx("click");
-        let subm = taskSubmissions.find((s) => s.task_id === taskId && s.student_id === studentId);
+        let subm = taskSubmissions.find((s) => String(s.task_id) === String(taskId) && String(s.student_id) === String(studentId));
         if (!subm) {
           subm = {
             id: "S_" + taskId + "_" + studentId,
@@ -4326,7 +4346,7 @@
 
       async function updateSubmissionScore(taskId, studentId, newScore) {
         playSfx("click");
-        let subm = taskSubmissions.find((s) => s.task_id === taskId && s.student_id === studentId);
+        let subm = taskSubmissions.find((s) => String(s.task_id) === String(taskId) && String(s.student_id) === String(studentId));
         const scoreVal = newScore !== "" ? Number(newScore) : null;
         let statusVal = "Belum Kumpul";
         if (scoreVal !== null) statusVal = scoreVal >= 70 ? "Sudah Kumpul" : "Remedial";
