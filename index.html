@@ -1052,25 +1052,7 @@
               supabaseClient.from("violation_presets").select("*").order("title", { ascending: true }),
               supabaseClient.from("good_presets").select("*").order("title", { ascending: true }),
               supabaseClient.from("tasks").select("*").order("due_date", { ascending: true }),
-              
-              // FITUR BARU: Auto-Pagination untuk menembus limit 1000 data Supabase pada tabel nilai
-              (async () => {
-                  let allSubmissions = [];
-                  let from = 0;
-                  const step = 1000;
-                  while(true) {
-                      const {data} = await supabaseClient.from("task_submissions").select("*").range(from, from + step - 1);
-                      if (data && data.length > 0) {
-                          allSubmissions.push(...data);
-                          if (data.length < step) break;
-                          from += step;
-                      } else {
-                          break;
-                      }
-                  }
-                  return { data: allSubmissions };
-              })(),
-
+              supabaseClient.from("task_submissions").select("*"),
               supabaseClient.from("app_settings").select("*"),
               supabaseClient.from("kas_alerts").select("*"),
               supabaseClient.from("student_messages").select("*").order("created_at", { ascending: false }),
@@ -1386,7 +1368,7 @@
         categories.forEach((cat) => (categoryGrades[cat] = { sum: 0, count: 0 }));
 
         tasks.forEach((t) => {
-          const subm = taskSubmissions.find((s) => String(s.task_id) === String(taskId) && String(s.student_id) === String(studentId));
+          const subm = taskSubmissions.find((s) => s.task_id === t.id && s.student_id === studentId);
           if (subm && subm.score !== null && subm.score !== undefined && subm.score !== "") {
             const cat = t.category || "LAINNYA";
             if (categoryGrades[cat]) {
@@ -1817,7 +1799,7 @@
                 `;
 
           groupedMisi[cat].forEach((m) => {
-            const subm = taskSubmissions.find((s) => String(s.task_id) === String(taskId) && String(s.student_id) === String(studentId));
+            const subm = taskSubmissions.find((s) => s.task_id === m.id && s.student_id === currentStudent.id);
             const status = subm ? subm.status : "Belum Kumpul";
             if (status === "Sudah Kumpul") completedMisiCount++;
 
@@ -1887,7 +1869,7 @@
                 `;
 
           groupedTugas[cat].forEach((t) => {
-            const subm = taskSubmissions.find((s) => String(s.task_id) === String(taskId) && String(s.student_id) === String(studentId));
+            const subm = taskSubmissions.find((s) => s.task_id === t.id && s.student_id === currentStudent.id);
             const status = subm ? subm.status : "Belum Kumpul";
             const currentScore = subm && subm.score !== null ? subm.score : "";
 
@@ -3587,7 +3569,7 @@
             const isIn = k.type === "in";
             // Jika data kolektif, tombol edit/hapus disembunyikan agar diedit dari atas.
             const actionsHtml = k.isWeekly 
-                ? `<span class="text-[8px] bg-indigo-100 text-indigo-700 px-2 py-1 rounded font-bold" title="Dikelola dari form mingguan di atas">Otomatis</span>`
+                ? `<button onclick="hapusKasMingguanAdmin('${k.date}')" class="text-red-500 p-1 hover:bg-red-50 rounded" title="Hapus Catatan Mingguan Ini"><i class="fa-solid fa-trash text-[10px]"></i></button>`
                 : `<button onclick="editKasAdmin('${k.id}')" class="text-blue-500 p-1 hover:bg-blue-50 rounded"><i class="fa-solid fa-pen text-[10px]"></i></button>
                    <button onclick="hapusKasAdmin('${k.id}')" class="text-red-500 p-1 hover:bg-red-50 rounded"><i class="fa-solid fa-trash text-[10px]"></i></button>`;
 
@@ -3811,9 +3793,53 @@
         await postToCloud("kas_transactions", "delete", null, id);
       }
 
+      async function hapusKasMingguanAdmin(date) {
+          const conf = await showCustomConfirm("Hapus Kas Kolektif", `Yakin ingin menghapus seluruh catatan kas mingguan untuk tanggal ${date}? Ini akan menghapus tunggakan dan rekam jejak poin terkait hari tersebut.`);
+          if (!conf) return;
+
+          // Hapus Log Pelanggaran Otomatis Kas
+          let logsToDelete = [];
+          logs = logs.filter(l => {
+              if (l.id.startsWith("L_KAS_") && l.id.endsWith(date)) {
+                  logsToDelete.push(l.id);
+                  // Kembalikan skor anak
+                  const s = students.find(std => std.id === l.student_id);
+                  if(s) {
+                      s.points_bad = Math.max(0, s.points_bad - l.points);
+                      postToCloud("students", "upsert", s); // Sinkronisasi background
+                  }
+                  return false;
+              }
+              return true;
+          });
+
+          // Hapus data mingguan dari memori
+          kasWeeklyRecords = kasWeeklyRecords.filter(w => w.date !== date);
+          
+          rebuildKasSummary();
+          saveLocalBackup();
+          renderDashboardStats();
+          switchAdminTab("kas");
+          playSfx("fail");
+          
+          await postToCloud("kas_weekly_records", "delete", null, date);
+          for (const logId of logsToDelete) {
+             await postToCloud("logs", "delete", null, logId);
+          }
+          
+          // Update Notifikasi Blink Anak-Anak
+          for(const s of students) {
+               if(kasAlerts[s.id]) {
+                   await postToCloud("kas_alerts", "upsert", { student_id: s.id, amount: kasAlerts[s.id] });
+               } else {
+                   await postToCloud("kas_alerts", "upsert", { student_id: s.id, amount: 0 }); 
+               }
+          }
+      }
+
       // MODUL: Pengelolaan Tugas, Nilai, & Misi Karakter (Admin) - TERMASUK FITUR KUNCI NILAI
       function isTaskFullyCompleted(taskId) {
-        const subs = taskSubmissions.filter((s) => String(s.task_id) === String(taskId));
+        const subs = taskSubmissions.filter((s) => s.task_id === taskId);
         if (subs.length === 0) return false;
         return subs.every((s) => s.status === "Sudah Kumpul");
       }
@@ -3951,8 +3977,8 @@
                 `;
         } else {
           filteredTasks.forEach((t) => {
-            const taskSubms = taskSubmissions.filter((s) => String(s.task_id) === String(t.id));
-            const totalAssigned = students.length;
+            const taskSubms = taskSubmissions.filter((s) => s.task_id === t.id);
+            const totalAssigned = taskSubms.length;
             const completed = taskSubms.filter((s) => s.status === "Sudah Kumpul").length;
             const completionRate = totalAssigned > 0 ? Math.round((completed / totalAssigned) * 100) : 0;
 
@@ -3970,8 +3996,8 @@
             const averageScoreVal = gradedCount > 0 ? Math.round((totalScoreVal / gradedCount) * 10) / 10 : 0;
 
             const sortedStudents = [...students].sort((a, b) => {
-              const subA = taskSubms.find((sub) => String(sub.student_id) === String(a.id));
-              const subB = taskSubms.find((sub) => String(sub.student_id) === String(b.id));
+              const subA = taskSubms.find((sub) => sub.student_id === a.id);
+              const subB = taskSubms.find((sub) => sub.student_id === b.id);
               const statusA = subA ? subA.status : "Belum Kumpul";
               const statusB = subB ? subB.status : "Belum Kumpul";
               const isUnfilledA = statusA !== "Sudah Kumpul";
@@ -4035,10 +4061,10 @@
                                         ${t.is_locked ? '<span class="text-[9px] font-black text-red-600 uppercase bg-red-50 px-2 py-1 rounded border border-red-200"><i class="fa-solid fa-lock-keyhole"></i> Nilai Terkunci</span>' : `<button onclick="markAllTaskSubmissionsAsDone('${t.id}')" class="bg-sky-600 hover:bg-sky-500 text-white font-black text-[9px] px-2.5 py-1 rounded-lg border-b-2 border-sky-800 transition active:scale-95 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Semua Lulus</button>`}
                                     </div>
 
-                                    <div class="space-y-1.5 overflow-y-auto divide-y divide-gray-100">
+                                    <div class="space-y-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
                                         ${sortedStudents
                                           .map((s) => {
-                                            const subm = taskSubms.find((sub) => String(sub.student_id) === String(s.id));
+                                            const subm = taskSubms.find((sub) => sub.student_id === s.id);
                                             const currentStatus = subm ? subm.status : "Belum Kumpul";
                                             const currentScore =
                                               subm && subm.score !== null && subm.score !== undefined ? subm.score : "";
@@ -4274,17 +4300,15 @@
         playSfx("success");
         await postToCloud("tasks", "upsert", newTugas);
 
-        if (index < 0) {
-            for (let i = 0; i < students.length; i++) {
-              const s = students[i];
-              await postToCloud("task_submissions", "upsert", {
-                id: "S_" + newTugas.id + "_" + s.id,
-                task_id: newTugas.id,
-                student_id: s.id,
-                status: "Belum Kumpul",
-                score: null,
-              });
-            }
+        for (let i = 0; i < students.length; i++) {
+          const s = students[i];
+          await postToCloud("task_submissions", "upsert", {
+            id: "S_" + newTugas.id + "_" + s.id,
+            task_id: newTugas.id,
+            student_id: s.id,
+            status: "Belum Kumpul",
+            score: null,
+          });
         }
         updateClassAnalytics();
 
@@ -4326,7 +4350,7 @@
 
       async function updateSubmissionStatus(taskId, studentId, newStatus) {
         playSfx("click");
-        let subm = taskSubmissions.find((s) => String(s.task_id) === String(taskId) && String(s.student_id) === String(studentId));
+        let subm = taskSubmissions.find((s) => s.task_id === taskId && s.student_id === studentId);
         if (!subm) {
           subm = {
             id: "S_" + taskId + "_" + studentId,
@@ -4346,7 +4370,7 @@
 
       async function updateSubmissionScore(taskId, studentId, newScore) {
         playSfx("click");
-        let subm = taskSubmissions.find((s) => String(s.task_id) === String(taskId) && String(s.student_id) === String(studentId));
+        let subm = taskSubmissions.find((s) => s.task_id === taskId && s.student_id === studentId);
         const scoreVal = newScore !== "" ? Number(newScore) : null;
         let statusVal = "Belum Kumpul";
         if (scoreVal !== null) statusVal = scoreVal >= 70 ? "Sudah Kumpul" : "Remedial";
