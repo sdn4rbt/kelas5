@@ -969,7 +969,7 @@
       let appSettings = {
         school_name: "SDN 4 Rambutan",
         class_name: "Kelas 5",
-        guru_name: "Bella Lifia, S.Pd.",
+        guru_name: "Tri Sulistiono, S.Pd., Gr",
         guru_nip: "19940812 202012 2 012",
         kepsek_name: "H. Mulyadi, M.Pd.",
         kepsek_nip: "19720503 199603 1 003",
@@ -1037,27 +1037,54 @@
         localStorage.setItem("br_kas_weekly", JSON.stringify(kasWeeklyRecords));
       }
 
+      // FUNGSI BARU: Mengambil data tanpa batas limit dari Supabase (Paginasi Otomatis)
+      async function fetchAllData(table, orderCol = null, isAsc = true) {
+        let allData = [];
+        let start = 0;
+        const limit = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+          let query = supabaseClient.from(table).select("*").range(start, start + limit - 1);
+          if (orderCol) query = query.order(orderCol, { ascending: isAsc });
+          
+          const { data, error } = await query;
+          if (error) {
+            console.error(`Error fetch ${table}:`, error);
+            break;
+          }
+          
+          allData = allData.concat(data);
+          if (data.length < limit) {
+            hasMore = false; // Data sudah habis ditarik
+          } else {
+            start += limit; // Lanjut tarik 1000 data berikutnya
+          }
+        }
+        return { data: allData };
+      }
+
       // MODUL: Integrasi Database (Cloud API)
       async function syncFromCloud() {
         toggleCloudSync(true);
         try {
           const [rStud, rLog, rRestL, rRestR, rAtt, rKas, rPres, rGoodPres, rTask, rSubm, rSettings, rAlerts, rMsgs, rStamps, rKasWeek] =
             await Promise.all([
-              supabaseClient.from("students").select("*").order("name", { ascending: true }),
-              supabaseClient.from("logs").select("*").order("id", { ascending: false }),
-              supabaseClient.from("restitusi_list").select("*"),
-              supabaseClient.from("restitusi_requests").select("*"),
-              supabaseClient.from("attendance").select("*"),
-              supabaseClient.from("kas_transactions").select("*").order("date", { ascending: false }),
-              supabaseClient.from("violation_presets").select("*").order("title", { ascending: true }),
-              supabaseClient.from("good_presets").select("*").order("title", { ascending: true }),
-              supabaseClient.from("tasks").select("*").order("due_date", { ascending: true }),
-              supabaseClient.from("task_submissions").select("*"),
-              supabaseClient.from("app_settings").select("*"),
-              supabaseClient.from("kas_alerts").select("*"),
-              supabaseClient.from("student_messages").select("*").order("created_at", { ascending: false }),
-              supabaseClient.from("multiplication_stamps").select("*"),
-              supabaseClient.from("kas_weekly_records").select("*").order("date", { ascending: false }),
+              fetchAllData("students", "name", true),
+              fetchAllData("logs", "id", false),
+              fetchAllData("restitusi_list"),
+              fetchAllData("restitusi_requests"),
+              fetchAllData("attendance"),
+              fetchAllData("kas_transactions", "date", false),
+              fetchAllData("violation_presets", "title", true),
+              fetchAllData("good_presets", "title", true),
+              fetchAllData("tasks", "due_date", true),
+              fetchAllData("task_submissions"),
+              fetchAllData("app_settings"),
+              fetchAllData("kas_alerts"),
+              fetchAllData("student_messages", "created_at", false),
+              fetchAllData("multiplication_stamps"),
+              fetchAllData("kas_weekly_records", "date", false),
             ]);
 
           if (rStud.data) students = rStud.data;
@@ -1368,7 +1395,7 @@
         categories.forEach((cat) => (categoryGrades[cat] = { sum: 0, count: 0 }));
 
         tasks.forEach((t) => {
-          const subm = taskSubmissions.find((s) => s.task_id === t.id && s.student_id === studentId);
+          const subm = taskSubmissions.find((s) => String(s.task_id) === String(t.id) && String(s.student_id) === String(studentId));
           if (subm && subm.score !== null && subm.score !== undefined && subm.score !== "") {
             const cat = t.category || "LAINNYA";
             if (categoryGrades[cat]) {
@@ -1799,7 +1826,7 @@
                 `;
 
           groupedMisi[cat].forEach((m) => {
-            const subm = taskSubmissions.find((s) => s.task_id === m.id && s.student_id === currentStudent.id);
+            const subm = taskSubmissions.find((s) => String(s.task_id) === String(m.id) && String(s.student_id) === String(currentStudent.id));
             const status = subm ? subm.status : "Belum Kumpul";
             if (status === "Sudah Kumpul") completedMisiCount++;
 
@@ -1869,7 +1896,7 @@
                 `;
 
           groupedTugas[cat].forEach((t) => {
-            const subm = taskSubmissions.find((s) => s.task_id === t.id && s.student_id === currentStudent.id);
+            const subm = taskSubmissions.find((s) => String(s.task_id) === String(t.id) && String(s.student_id) === String(currentStudent.id));
             const status = subm ? subm.status : "Belum Kumpul";
             const currentScore = subm && subm.score !== null ? subm.score : "";
 
@@ -1928,7 +1955,7 @@
         const conf = await showCustomConfirm("Lapor Misi", "Konfirmasi bahwa Anda telah menyelesaikan misi ini?");
         if (!conf) return;
 
-        let subm = taskSubmissions.find((s) => s.task_id === taskId && s.student_id === currentStudent.id);
+        let subm = taskSubmissions.find((s) => String(s.task_id) === String(taskId) && String(s.student_id) === String(currentStudent.id));
         if (!subm) {
           subm = {
             id: "S_" + taskId + "_" + currentStudent.id,
@@ -1976,7 +2003,7 @@
         );
         if (!conf) return;
 
-        let subm = taskSubmissions.find((s) => s.task_id === taskId && s.student_id === currentStudent.id);
+        let subm = taskSubmissions.find((s) => String(s.task_id) === String(taskId) && String(s.student_id) === String(currentStudent.id));
         if (!subm) {
           subm = {
             id: "S_" + taskId + "_" + currentStudent.id,
@@ -2130,7 +2157,7 @@
           document.getElementById("class-monthly-presence-rate").innerText = `${avgPercent}% Bulan Ini`;
         }
 
-        const totalSubmCount = taskSubmissions.length;
+        const totalSubmCount = tasks.length * students.length;
         const completedSubmCount = taskSubmissions.filter((s) => s.status === "Sudah Kumpul").length;
         const tasksPercent = totalSubmCount > 0 ? Math.round((completedSubmCount / totalSubmCount) * 100) : 0;
         document.getElementById("class-monthly-tasks-rate").innerText = `${tasksPercent}% Selesai`;
@@ -3582,7 +3609,7 @@
                                 <div>
                                     <h6 class="text-xs font-bold text-gray-800">${k.description}</h6>
                                     <p class="text-[8px] text-gray-400">${k.date}</p>
-                                </div>
+                                </div>https://codebeautify.org/htmlviewer#
                             </div>
                             <div class="flex items-center gap-2 shrink-0">
                                 <span class="text-xs font-black ${isIn ? "text-green-600" : "text-red-600"}">${isIn ? "+" : "-"}${formatRupiah(k.amount)}</span>
@@ -3839,9 +3866,8 @@
 
       // MODUL: Pengelolaan Tugas, Nilai, & Misi Karakter (Admin) - TERMASUK FITUR KUNCI NILAI
       function isTaskFullyCompleted(taskId) {
-        const subs = taskSubmissions.filter((s) => s.task_id === taskId);
-        if (subs.length === 0) return false;
-        return subs.every((s) => s.status === "Sudah Kumpul");
+        const subs = taskSubmissions.filter((s) => s.task_id === taskId && s.status === "Sudah Kumpul");
+        return students.length > 0 && subs.length === students.length;
       }
 
       function renderTabTugas(container) {
@@ -3978,7 +4004,7 @@
         } else {
           filteredTasks.forEach((t) => {
             const taskSubms = taskSubmissions.filter((s) => s.task_id === t.id);
-            const totalAssigned = taskSubms.length;
+            const totalAssigned = students.length;
             const completed = taskSubms.filter((s) => s.status === "Sudah Kumpul").length;
             const completionRate = totalAssigned > 0 ? Math.round((completed / totalAssigned) * 100) : 0;
 
@@ -3996,8 +4022,8 @@
             const averageScoreVal = gradedCount > 0 ? Math.round((totalScoreVal / gradedCount) * 10) / 10 : 0;
 
             const sortedStudents = [...students].sort((a, b) => {
-              const subA = taskSubms.find((sub) => sub.student_id === a.id);
-              const subB = taskSubms.find((sub) => sub.student_id === b.id);
+              const subA = taskSubms.find((sub) => String(sub.student_id) === String(a.id));
+              const subB = taskSubms.find((sub) => String(sub.student_id) === String(b.id));
               const statusA = subA ? subA.status : "Belum Kumpul";
               const statusB = subB ? subB.status : "Belum Kumpul";
               const isUnfilledA = statusA !== "Sudah Kumpul";
@@ -4064,7 +4090,7 @@
                                     <div class="space-y-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
                                         ${sortedStudents
                                           .map((s) => {
-                                            const subm = taskSubms.find((sub) => sub.student_id === s.id);
+                                            const subm = taskSubms.find((sub) => String(sub.student_id) === String(s.id));
                                             const currentStatus = subm ? subm.status : "Belum Kumpul";
                                             const currentScore =
                                               subm && subm.score !== null && subm.score !== undefined ? subm.score : "";
@@ -4186,7 +4212,7 @@
 
         for (let i = 0; i < students.length; i++) {
           const s = students[i];
-          let subm = taskSubmissions.find((sub) => sub.task_id === taskId && sub.student_id === s.id);
+          let subm = taskSubmissions.find((sub) => String(sub.task_id) === String(taskId) && String(sub.student_id) === String(s.id));
           if (!subm) {
             subm = {
               id: "S_" + taskId + "_" + s.id,
@@ -4282,34 +4308,12 @@
           tasks[index] = newTugas;
         } else {
           tasks.push(newTugas);
-          students.forEach((s) => {
-            const submissionId = "S_" + newTugas.id + "_" + s.id;
-            const exists = taskSubmissions.some((x) => x.id === submissionId);
-            if (!exists)
-              taskSubmissions.push({
-                id: submissionId,
-                task_id: newTugas.id,
-                student_id: s.id,
-                status: "Belum Kumpul",
-                score: null,
-              });
-          });
         }
 
         saveLocalBackup();
         playSfx("success");
         await postToCloud("tasks", "upsert", newTugas);
 
-        for (let i = 0; i < students.length; i++) {
-          const s = students[i];
-          await postToCloud("task_submissions", "upsert", {
-            id: "S_" + newTugas.id + "_" + s.id,
-            task_id: newTugas.id,
-            student_id: s.id,
-            status: "Belum Kumpul",
-            score: null,
-          });
-        }
         updateClassAnalytics();
 
         if (!isDesktopMode) {
@@ -4340,7 +4344,7 @@
         if (!conf) return;
 
         tasks = tasks.filter((t) => t.id !== id);
-        taskSubmissions = taskSubmissions.filter((s) => s.task_id !== id);
+        taskSubmissions = taskSubmissions.filter((s) => String(s.task_id) !== String(id));
         saveLocalBackup();
         switchAdminTab("tugas");
         playSfx("fail");
@@ -4350,7 +4354,7 @@
 
       async function updateSubmissionStatus(taskId, studentId, newStatus) {
         playSfx("click");
-        let subm = taskSubmissions.find((s) => s.task_id === taskId && s.student_id === studentId);
+        let subm = taskSubmissions.find((s) => String(s.task_id) === String(taskId) && String(s.student_id) === String(studentId));
         if (!subm) {
           subm = {
             id: "S_" + taskId + "_" + studentId,
@@ -4366,11 +4370,12 @@
         saveLocalBackup();
         updateClassAnalytics();
         await postToCloud("task_submissions", "upsert", subm);
+        renderTabTugas(document.getElementById("admin-panel-content"));
       }
 
       async function updateSubmissionScore(taskId, studentId, newScore) {
         playSfx("click");
-        let subm = taskSubmissions.find((s) => s.task_id === taskId && s.student_id === studentId);
+        let subm = taskSubmissions.find((s) => String(s.task_id) === String(taskId) && String(s.student_id) === String(studentId));
         const scoreVal = newScore !== "" ? Number(newScore) : null;
         let statusVal = "Belum Kumpul";
         if (scoreVal !== null) statusVal = scoreVal >= 70 ? "Sudah Kumpul" : "Remedial";
@@ -4391,6 +4396,7 @@
         saveLocalBackup();
         updateClassAnalytics();
         await postToCloud("task_submissions", "upsert", subm);
+        renderTabTugas(document.getElementById("admin-panel-content"));
       }
 
       function renderTabPeringkat(container) {
@@ -4458,7 +4464,7 @@
           let sum = 0;
           let count = 0;
           catTasks.forEach((t) => {
-            const subm = taskSubmissions.find((sub) => sub.task_id === t.id && sub.student_id === s.id);
+            const subm = taskSubmissions.find((sub) => String(sub.task_id) === String(t.id) && String(sub.student_id) === String(s.id));
             if (subm && subm.score !== null && subm.score !== undefined && subm.score !== "") {
               sum += Number(subm.score);
               count++;
@@ -4639,12 +4645,22 @@
         function renderTabRapor(container) {
         let html = `
                 <h4 class="font-black text-xs text-blue-800 uppercase tracking-wider mb-2">Cetak Rapor & Rekapitulasi Resmi</h4>
-                <div class="grid grid-cols-2 gap-2 mb-4">
-                    <button onclick="cetakRekapBulananLandscape()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black py-2.5 rounded-xl border-b-2 border-indigo-950 flex items-center justify-center gap-2 btn-3d"><i class="fa-solid fa-file-invoice"></i> CETAK REKAP LANDSCAPE</button>
-                    <button onclick="cetakRaporKolektif('Semua')" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black py-2.5 rounded-xl border-b-2 border-blue-900 flex items-center justify-center gap-2 btn-3d"><i class="fa-solid fa-print"></i> CETAK SEMUA RAPOR</button>
+                
+                <!-- FITUR BARU: CETAK PRESENSI BULANAN -->
+                <div class="bg-violet-50 border-2 border-violet-200 p-3 rounded-2xl mb-4 space-y-2">
+                    <label class="text-[10px] font-black text-violet-900 block uppercase"><i class="fa-solid fa-calendar-check text-violet-600"></i> Cetak Rekapitulasi Presensi Kelas:</label>
+                    <div class="flex gap-2">
+                        <input type="month" id="absen-bulan" class="w-1/2 p-2 text-xs rounded-xl bg-white border border-violet-300 text-gray-850 font-bold focus:outline-none" title="Kosongkan untuk cetak seluruh waktu">
+                        <button onclick="cetakRekapBulananLandscape()" class="w-1/2 bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-black py-2.5 rounded-xl border-b-2 border-violet-800 flex items-center justify-center gap-2 btn-3d shadow-sm"><i class="fa-solid fa-file-invoice"></i> CETAK PRESENSI</button>
+                    </div>
+                    <p class="text-[8px] text-violet-700 font-bold">*Pilih bulan untuk rekap bulanan, atau biarkan kosong untuk cetak keseluruhan.</p>
                 </div>
 
-                <!-- FITUR BARU: CETAK PIAGAM BINTANG -->
+                <div class="grid grid-cols-1 mb-4">
+                    <button onclick="cetakRaporKolektif('Semua')" class="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black py-2.5 rounded-xl border-b-2 border-blue-900 flex items-center justify-center gap-2 btn-3d"><i class="fa-solid fa-print"></i> CETAK SEMUA RAPOR KARAKTER</button>
+                </div>
+
+                <!-- FITUR CETAK PIAGAM BINTANG -->
                 <div class="bg-yellow-50 border-2 border-yellow-200 p-3 rounded-2xl mb-4 space-y-2">
                     <label class="text-[10px] font-black text-yellow-900 block uppercase"><i class="fa-solid fa-medal text-yellow-600"></i> Cetak Piagam Penghargaan Karakter:</label>
                     <div class="flex gap-2">
@@ -4749,7 +4765,7 @@
                     <div class="page page-break">
                         <div class="header">
                             <div class="title">RAPOR PERKEMBANGAN KARAKTER SISWA</div>
-                            <div class="subtitle">${(appSettings.school_name || "SD NEGERI 4 RAMBUTAN").toUpperCase()} - ${(appSettings.class_name || "KELAS 5").toUpperCase()}</div>
+                            <div class="subtitle">${(appSettings.school_name || "SD NEGERI 4 Rambutan").toUpperCase()} - ${(appSettings.class_name || "KELAS 5").toUpperCase()}</div>
                         </div>
                         <table class="meta">
                             <tr><td width="25%"><b>Nama Siswa</b></td><td width="3%">:</td><td width="72%">${s.name}</td></tr>
@@ -4790,7 +4806,7 @@
                                 Mengetahui,<br>Kepala Sekolah<br><br><br><br><b>${appSettings.kepsek_name || "H. Mulyadi, M.Pd."}</b><br>NIP. ${appSettings.kepsek_nip || "-"}
                             </div>
                             <div class="sig">
-                                Rambutan, ${new Date().toLocaleDateString("id-ID")}<br>Guru Kelas 5<br><br><br><br><b>${appSettings.guru_name || "Bella Lifia, S.Pd."}</b><br>NIP. ${appSettings.guru_nip || "-"}
+                                Rambutan, ${new Date().toLocaleDateString("id-ID")}<br>Guru Kelas 5<br><br><br><br><b>${appSettings.guru_name || "Tri Sulistiono, S.Pd., Gr"}</b><br>NIP. ${appSettings.guru_nip || "-"}
                             </div>
                         </div>
                     </div>
@@ -4819,30 +4835,67 @@
       }
 
       function cetakRekapBulananLandscape() {
-        let sumH = 0,
-          sumS = 0,
-          sumI = 0,
-          sumA = 0,
-          sumTotalMarked = 0;
-        students.forEach((s) => {
-          attendanceData.forEach((day) => {
-            const status = day.records[s.id] || "H";
-            if (status === "H") sumH++;
-            else if (status === "S") sumS++;
-            else if (status === "I") sumI++;
-            else if (status === "A") sumA++;
-          });
+        playSfx("click");
+        const monthInput = document.getElementById("absen-bulan").value;
+        let filterBulan = null;
+        let filterTahun = null;
+        let textPeriode = "AKUMULASI KESELURUHAN WAKTU";
+        let tanggalTtdObj = new Date();
+
+        if (monthInput) {
+            const [y, m] = monthInput.split("-");
+            filterTahun = parseInt(y);
+            filterBulan = parseInt(m);
+            const monthNames = ["", "JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
+            textPeriode = `PERIODE BULAN ${monthNames[filterBulan]} ${filterTahun}`;
+            
+            // Set penandatanganan ke tanggal terakhir di bulan tersebut
+            tanggalTtdObj = new Date(filterTahun, filterBulan, 0);
+        }
+
+        const tglTtdFormat = tanggalTtdObj.toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' });
+
+        // Filter Data Absensi Sesuai Pilihan
+        const filteredAtt = attendanceData.filter(day => {
+            if (!monthInput) return true;
+            const dParts = day.date.split('-');
+            return parseInt(dParts[0]) === filterTahun && parseInt(dParts[1]) === filterBulan;
         });
-        sumTotalMarked = sumH + sumS + sumI + sumA;
-        const classH_pct = sumTotalMarked > 0 ? Math.round((sumH / sumTotalMarked) * 100) : 0;
-        const classS_pct = sumTotalMarked > 0 ? Math.round((sumS / sumTotalMarked) * 100) : 0;
-        const classI_pct = sumTotalMarked > 0 ? Math.round((sumI / sumTotalMarked) * 100) : 0;
-        const classA_pct = sumTotalMarked > 0 ? Math.round((sumA / sumTotalMarked) * 100) : 0;
+
+        if (filteredAtt.length === 0) {
+            showPopup("Data Kosong", "Tidak ada catatan kehadiran pada periode yang dipilih.", "fa-ban", "text-red-500", "bg-red-50");
+            return;
+        }
+
+        let sumH = 0, sumS = 0, sumI = 0, sumA = 0;
+        
+        // Kalkulasi Masing-Masing Siswa
+        let studentsStats = students.map(s => {
+            let h = 0, sakit = 0, i = 0, a = 0;
+            filteredAtt.forEach(day => {
+                const status = day.records[s.id] || "H";
+                if (status === "H") h++;
+                else if (status === "S") sakit++;
+                else if (status === "I") i++;
+                else if (status === "A") a++;
+            });
+            sumH += h; sumS += sakit; sumI += i; sumA += a;
+            
+            const total = h + sakit + i + a;
+            const pct = total > 0 ? Math.round((h / total) * 100) : 0;
+            return { id: s.id, name: s.name, gender: s.gender, h, s: sakit, i, a, pct, total };
+        });
+
+        const sumTotalMarked = sumH + sumS + sumI + sumA;
+        const classH_pct = sumTotalMarked > 0 ? ((sumH / sumTotalMarked) * 100).toFixed(1) : 0;
+        const classS_pct = sumTotalMarked > 0 ? ((sumS / sumTotalMarked) * 100).toFixed(1) : 0;
+        const classI_pct = sumTotalMarked > 0 ? ((sumI / sumTotalMarked) * 100).toFixed(1) : 0;
+        const classA_pct = sumTotalMarked > 0 ? ((sumA / sumTotalMarked) * 100).toFixed(1) : 0;
 
         let htmlContent = `
                 <html>
                 <head>
-                    <title>Rekap Kehadiran Bulanan - ${appSettings.school_name || "Bintang Kelas"}</title>
+                    <title>Rekap Kehadiran - ${appSettings.school_name || "Bintang Kelas"}</title>
                     <style>
                         @page { size: landscape; margin: 20mm; }
                         body { font-family: 'Courier New', Courier, monospace; color: #000; line-height: 1.3; background: #fff; padding: 0; margin: 0; }
@@ -4855,55 +4908,50 @@
                         .table th { background-color: #eaeaea; text-transform: uppercase; font-weight: bold; }
                         .align-left { text-align: left !important; }
                         .footer { margin-top: 40px; display: flex; justify-content: space-between; }
-                        .sig { text-align: center; width: 300px; font-size: 11px; }
+                        .sig { text-align: center; width: 300px; font-size: 12px; }
                     </style>
                 </head>
                 <body onload="setTimeout(function(){ window.print(); }, 500);">
                     <div class="document-container">
                         <div class="kop-polos">
-                            <div class="kop-title">REKAPITULASI PRESENSI BULANAN SISWA</div>
-                            <div class="kop-subtitle">${(appSettings.school_name || "SD NEGERI 4 RAMBUTAN").toUpperCase()} - ${(appSettings.class_name || "KELAS 5").toUpperCase()}</div>
-                            <div class="kop-subtitle" style="font-weight: normal; font-size: 11px;">Tanggal Cetak: ${new Date().toLocaleDateString("id-ID")}</div>
+                            <div class="kop-title">REKAPITULASI PRESENSI SISWA</div>
+                            <div class="kop-subtitle">${(appSettings.school_name || "SD NEGERI 4 Rambutan").toUpperCase()} - ${(appSettings.class_name || "KELAS 5").toUpperCase()}</div>
+                            <div class="kop-subtitle" style="font-weight: normal; font-size: 12px;">${textPeriode}</div>
                         </div>
 
                         <table class="table">
                             <thead>
                                 <tr>
                                     <th width="5%">No</th>
-                                    <th class="align-left" width="35%">Nama Siswa</th>
-                                    <th width="10%">L/P</th>
-                                    <th width="10%">Hadir (H)</th>
-                                    <th width="10%">Sakit (S)</th>
-                                    <th width="10%">Izin (I)</th>
-                                    <th width="10%">Alfa (A)</th>
-                                    <th width="10%">Persentase (%)</th>
+                                    <th class="align-left" width="30%">Nama Siswa</th>
+                                    <th width="5%">L/P</th>
+                                    <th width="12%">Hadir (H)</th>
+                                    <th width="12%">Sakit (S)</th>
+                                    <th width="12%">Izin (I)</th>
+                                    <th width="12%">Alfa (A)</th>
+                                    <th width="12%">% Kehadiran</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${students
-                                  .map((s, idx) => {
-                                    const stats = getStudentAttendanceStats(s.id);
-                                    return `
+                                ${studentsStats.map((st, idx) => `
                                         <tr>
                                             <td>${idx + 1}</td>
-                                            <td class="align-left"><b>${s.name}</b></td>
-                                            <td>${s.gender === "Putra" ? "L" : "P"}</td>
-                                            <td>${stats.hadir}</td>
-                                            <td>${stats.sakit}</td>
-                                            <td>${stats.izin}</td>
-                                            <td>${stats.alfa}</td>
-                                            <td><b>${stats.percent}%</b></td>
+                                            <td class="align-left"><b>${st.name}</b></td>
+                                            <td>${st.gender === "Putra" ? "L" : "P"}</td>
+                                            <td>${st.h}</td>
+                                            <td>${st.s}</td>
+                                            <td>${st.i}</td>
+                                            <td>${st.a}</td>
+                                            <td><b>${st.pct}%</b></td>
                                         </tr>
-                                    `;
-                                  })
-                                  .join("")}
+                                `).join("")}
                                 
                                 <tr style="background-color: #f9f9f9; font-weight: bold; border-top: 2px solid #000;">
-                                    <td colspan="3">PERSENTASE KOLEKTIF TOTAL KELAS</td>
-                                    <td>${sumH} (${classH_pct}%)</td>
-                                    <td>${sumS} (${classS_pct}%)</td>
-                                    <td>${sumI} (${classI_pct}%)</td>
-                                    <td>${sumA} (${classA_pct}%)</td>
+                                    <td colspan="3">PERSENTASE TOTAL KELAS</td>
+                                    <td>${sumH} <br><span style="font-size:9px">(${classH_pct}%)</span></td>
+                                    <td>${sumS} <br><span style="font-size:9px">(${classS_pct}%)</span></td>
+                                    <td>${sumI} <br><span style="font-size:9px">(${classI_pct}%)</span></td>
+                                    <td>${sumA} <br><span style="font-size:9px">(${classA_pct}%)</span></td>
                                     <td><b>${classH_pct}%</b></td>
                                 </tr>
                             </tbody>
@@ -4914,7 +4962,7 @@
                                 Mengetahui,<br>Kepala Sekolah<br><br><br><br><b>${appSettings.kepsek_name || "H. Mulyadi, M.Pd."}</b><br>NIP. ${appSettings.kepsek_nip || "-"}
                             </div>
                             <div class="sig">
-                                Rambutan, ${new Date().toLocaleDateString("id-ID")}<br>Guru Kelas 5<br><br><br><br><b>${appSettings.guru_name || "Bella Lifia, S.Pd."}</b><br>NIP. ${appSettings.guru_nip || "-"}
+                                Rambutan, ${tglTtdFormat}<br>Guru Kelas<br><br><br><br><b>${appSettings.guru_name || "Tri Sulistiono, S.Pd., Gr"}</b><br>NIP. ${appSettings.guru_nip || "-"}
                             </div>
                         </div>
                     </div>
@@ -4928,13 +4976,7 @@
           printWin.document.write(htmlContent);
           printWin.document.close();
         } else {
-          showPopup(
-            "Popup Diblokir",
-            "Mohon izinkan pop-ups untuk domain ini lalu coba lagi.",
-            "fa-ban",
-            "text-red-500",
-            "bg-red-50",
-          );
+          showPopup("Popup Diblokir", "Mohon izinkan pop-ups untuk domain ini lalu coba lagi.", "fa-ban", "text-red-500", "bg-red-50");
         }
       }
 
@@ -4971,7 +5013,7 @@
                     <div class="document-container">
                         <div class="kop-polos">
                             <div class="kop-title">REKAPITULASI NILAI AKADEMIK RESMI</div>
-                            <div class="kop-subtitle">${(appSettings.school_name || "SD NEGERI 4 RAMBUTAN").toUpperCase()} - ${(appSettings.class_name || "KELAS 5").toUpperCase()}</div>
+                            <div class="kop-subtitle">${(appSettings.school_name || "SD NEGERI 4 Rambutan").toUpperCase()} - ${(appSettings.class_name || "KELAS 5").toUpperCase()}</div>
                             <div class="kop-subtitle" style="font-weight: bold; font-size: 11px; margin-top:5px;">MATA PELAJARAN: ${selectedCat.toUpperCase()}</div>
                         </div>
 
@@ -4995,7 +5037,7 @@
 
                                     filteredTasks.forEach((t) => {
                                       const subm = taskSubmissions.find(
-                                        (sub) => sub.task_id === t.id && sub.student_id === s.id,
+                                        (sub) => String(sub.task_id) === String(t.id) && String(sub.student_id) === String(s.id)
                                       );
                                       const currentScore =
                                         subm && subm.score !== null && subm.score !== undefined && subm.score !== ""
@@ -5264,7 +5306,7 @@
                         <div class="sig">
                             Rambutan, ${new Date().toLocaleDateString("id-ID")}<br>
                             Guru Kelas<br>
-                            <div class="sig-line">${appSettings.guru_name || "Bella Lifia, S.Pd."}</div>
+                            <div class="sig-line">${appSettings.guru_name || "Tri Sulistiono, S.Pd., Gr"}</div>
                             <div class="sig-nip">NIP. ${appSettings.guru_nip || "-"}</div>
                         </div>
                     </div>
