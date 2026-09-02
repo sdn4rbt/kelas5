@@ -113,11 +113,10 @@
       }
     </style>
   </head>
-  <body class="text-gray-800 h-screen flex flex-col items-center justify-start overflow-hidden">
-    <!-- Container Utama Layout (Responsive Desktop / HP) -->
+  <body class="text-gray-800 min-h-screen flex flex-col items-center justify-start overflow-visible">
     <div
       id="main-container"
-      class="w-full max-w-md h-full bg-white shadow-2xl relative overflow-hidden flex flex-col transition-all duration-300"
+      class="w-full max-w-md min-h-screen bg-white shadow-2xl relative overflow-visible flex flex-col transition-all duration-300"
     >
       <!-- Status Indikator Sinkronisasi Awan -->
       <div
@@ -3991,7 +3990,7 @@
                             </div>
                         </div>
 
-                        <div class="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                        <div class="space-y-3 pr-1">
             `;
 
         if (filteredTasks.length === 0) {
@@ -4087,7 +4086,7 @@
                                         ${t.is_locked ? '<span class="text-[9px] font-black text-red-600 uppercase bg-red-50 px-2 py-1 rounded border border-red-200"><i class="fa-solid fa-lock-keyhole"></i> Nilai Terkunci</span>' : `<button onclick="markAllTaskSubmissionsAsDone('${t.id}')" class="bg-sky-600 hover:bg-sky-500 text-white font-black text-[9px] px-2.5 py-1 rounded-lg border-b-2 border-sky-800 transition active:scale-95 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Semua Lulus</button>`}
                                     </div>
 
-                                    <div class="space-y-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
+                                    <div class="space-y-1.5 divide-y divide-gray-100">
                                         ${sortedStudents
                                           .map((s) => {
                                             const subm = taskSubms.find((sub) => String(sub.student_id) === String(s.id));
@@ -4150,11 +4149,8 @@
 
         if (isDesktopMode) {
           const box = document.getElementById("form-tugas-box");
-          const list = document.getElementById("tugas-list-area");
-          if (box && list) {
-            box.classList.remove("hidden");
-            list.classList.remove("lg:col-span-12");
-            list.classList.add("lg:col-span-7");
+          if (box) {
+             // Form menyesuaikan layar (full-width) tanpa mengubah grid-span statis
           }
         }
       }
@@ -4370,7 +4366,6 @@
         saveLocalBackup();
         updateClassAnalytics();
         await postToCloud("task_submissions", "upsert", subm);
-        renderTabTugas(document.getElementById("admin-panel-content"));
       }
 
       async function updateSubmissionScore(taskId, studentId, newScore) {
@@ -4396,7 +4391,6 @@
         saveLocalBackup();
         updateClassAnalytics();
         await postToCloud("task_submissions", "upsert", subm);
-        renderTabTugas(document.getElementById("admin-panel-content"));
       }
 
       function renderTabPeringkat(container) {
